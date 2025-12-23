@@ -1,30 +1,33 @@
-import { createContext, useContext, useState, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { User, Session } from "@supabase/supabase-js";
 
-interface User {
+interface Profile {
   id: string;
   name: string;
   email: string;
-  avatar?: string;
-  role: "user" | "admin";
-  location: {
-    ward: string;
-    lga: string;
-    state: string;
-    country: string;
-  };
-  wallet: {
-    points: number;
-    money: number;
-  };
-  referralCode: string;
+  avatar_url?: string;
+  ward: string;
+  lga: string;
+  state: string;
+  country: string;
+  points: number;
+  money_balance: number;
+  referral_code: string;
+  is_active: boolean;
 }
 
 interface AuthContextType {
   user: User | null;
+  session: Session | null;
+  profile: Profile | null;
   isAuthenticated: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  register: (data: RegisterData) => Promise<void>;
-  logout: () => void;
+  isAdmin: boolean;
+  isLoading: boolean;
+  login: (email: string, password: string) => Promise<{ error: Error | null }>;
+  register: (data: RegisterData) => Promise<{ error: Error | null }>;
+  logout: () => Promise<void>;
+  refreshProfile: () => Promise<void>;
 }
 
 interface RegisterData {
@@ -41,61 +44,125 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const fetchProfile = async (userId: string) => {
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", userId)
+      .single();
+
+    if (data && !error) {
+      setProfile(data as Profile);
+    }
+  };
+
+  const checkAdminRole = async (userId: string) => {
+    const { data, error } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId)
+      .eq("role", "admin")
+      .maybeSingle();
+
+    setIsAdmin(!!data && !error);
+  };
+
+  useEffect(() => {
+    // Set up auth state listener FIRST
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setSession(session);
+        setUser(session?.user ?? null);
+        
+        // Defer Supabase calls with setTimeout to prevent deadlock
+        if (session?.user) {
+          setTimeout(() => {
+            fetchProfile(session.user.id);
+            checkAdminRole(session.user.id);
+          }, 0);
+        } else {
+          setProfile(null);
+          setIsAdmin(false);
+        }
+        setIsLoading(false);
+      }
+    );
+
+    // THEN check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      
+      if (session?.user) {
+        fetchProfile(session.user.id);
+        checkAdminRole(session.user.id);
+      }
+      setIsLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   const login = async (email: string, password: string) => {
-    // Mock login - will be replaced with actual auth
-    setUser({
-      id: "1",
-      name: "Demo User",
+    const { error } = await supabase.auth.signInWithPassword({
       email,
-      role: "user",
-      location: {
-        ward: "Ward 1",
-        lga: "Sample LGA",
-        state: "Lagos",
-        country: "Nigeria",
-      },
-      wallet: {
-        points: 150,
-        money: 5000,
-      },
-      referralCode: "DEMO123",
+      password,
     });
+    return { error };
   };
 
   const register = async (data: RegisterData) => {
-    // Mock registration - will be replaced with actual auth
-    setUser({
-      id: "1",
-      name: data.name,
+    const redirectUrl = `${window.location.origin}/`;
+    
+    const { error } = await supabase.auth.signUp({
       email: data.email,
-      role: "user",
-      location: {
-        ward: data.ward,
-        lga: data.lga,
-        state: data.state,
-        country: data.country,
+      password: data.password,
+      options: {
+        emailRedirectTo: redirectUrl,
+        data: {
+          name: data.name,
+          ward: data.ward,
+          lga: data.lga,
+          state: data.state,
+          country: data.country,
+        },
       },
-      wallet: {
-        points: 0,
-        money: 0,
-      },
-      referralCode: `REF${Math.random().toString(36).substring(7).toUpperCase()}`,
     });
+    return { error };
   };
 
-  const logout = () => {
+  const logout = async () => {
+    await supabase.auth.signOut();
     setUser(null);
+    setSession(null);
+    setProfile(null);
+    setIsAdmin(false);
+  };
+
+  const refreshProfile = async () => {
+    if (user) {
+      await fetchProfile(user.id);
+    }
   };
 
   return (
     <AuthContext.Provider
       value={{
         user,
-        isAuthenticated: !!user,
+        session,
+        profile,
+        isAuthenticated: !!session,
+        isAdmin,
+        isLoading,
         login,
         register,
         logout,
+        refreshProfile,
       }}
     >
       {children}

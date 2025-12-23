@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Wallet as WalletIcon,
   Coins,
@@ -29,7 +30,7 @@ const transactions = [
 ];
 
 const Wallet = () => {
-  const { user } = useAuth();
+  const { profile } = useAuth();
   const { toast } = useToast();
   const [buyAmount, setBuyAmount] = useState("");
   const [sellAmount, setSellAmount] = useState("");
@@ -95,7 +96,7 @@ const Wallet = () => {
   };
 
   const copyReferralLink = () => {
-    navigator.clipboard.writeText(`https://universalreciters.com/ref/${user?.referralCode || "DEMO123"}`);
+    navigator.clipboard.writeText(`https://universalreciters.com/ref/${profile?.referral_code || "DEMO123"}`);
     toast({ title: "Referral link copied!" });
   };
 
@@ -112,10 +113,10 @@ const Wallet = () => {
                 <div>
                   <p className="text-sm opacity-80">Points Balance</p>
                   <p className="text-3xl font-bold mt-1">
-                    {(user?.wallet?.points || 150).toLocaleString()}
+                    {(profile?.points || 0).toLocaleString()}
                   </p>
                   <p className="text-xs opacity-70 mt-1">
-                    ≈ ₦{((user?.wallet?.points || 150) * 50).toLocaleString()}
+                    ≈ ₦{((profile?.points || 0) * 50).toLocaleString()}
                   </p>
                 </div>
                 <Coins className="w-10 h-10 opacity-80" />
@@ -129,7 +130,7 @@ const Wallet = () => {
                 <div>
                   <p className="text-sm opacity-80">Money Balance</p>
                   <p className="text-3xl font-bold mt-1">
-                    ₦{(user?.wallet?.money || 5000).toLocaleString()}
+                    ₦{Number(profile?.money_balance || 0).toLocaleString()}
                   </p>
                   <p className="text-xs opacity-70 mt-1">Available for withdrawal</p>
                 </div>
@@ -272,7 +273,7 @@ const Wallet = () => {
                   <div className="bg-muted rounded-lg p-4 text-sm">
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Available</span>
-                      <span className="font-medium">₦{(user?.wallet?.money || 5000).toLocaleString()}</span>
+                      <span className="font-medium">₦{Number(profile?.money_balance || 0).toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between mt-1">
                       <span className="text-muted-foreground">Minimum</span>
@@ -312,7 +313,7 @@ const Wallet = () => {
             </p>
             <div className="flex gap-2">
               <Input
-                value={`universalreciters.com/ref/${user?.referralCode || "DEMO123"}`}
+                value={`universalreciters.com/ref/${profile?.referral_code || "DEMO123"}`}
                 readOnly
                 className="flex-1"
               />
