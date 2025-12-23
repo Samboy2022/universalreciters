@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import Logo from "@/components/ui/Logo";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { Eye, EyeOff, UserPlus, Upload } from "lucide-react";
+import { Eye, EyeOff, UserPlus, Loader2 } from "lucide-react";
 
 const nigeriaStates = [
   "Abia", "Adamawa", "Akwa Ibom", "Anambra", "Bauchi", "Bayelsa", "Benue", "Borno",
@@ -25,7 +25,6 @@ const Register = () => {
     email: "",
     password: "",
     confirmPassword: "",
-    avatar: null as File | null,
     ward: "",
     lga: "",
     state: "",
@@ -33,9 +32,16 @@ const Register = () => {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const { register } = useAuth();
+  const { register, isAuthenticated, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (!authLoading && isAuthenticated) {
+      navigate("/dashboard");
+    }
+  }, [isAuthenticated, authLoading, navigate]);
 
   const handleChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -47,6 +53,14 @@ const Register = () => {
         toast({
           title: "Missing information",
           description: "Please fill in all required fields.",
+          variant: "destructive",
+        });
+        return;
+      }
+      if (formData.password.length < 6) {
+        toast({
+          title: "Password too short",
+          description: "Password must be at least 6 characters.",
           variant: "destructive",
         });
         return;
@@ -78,7 +92,7 @@ const Register = () => {
     setIsLoading(true);
     
     try {
-      await register({
+      const { error } = await register({
         name: formData.name,
         email: formData.email,
         password: formData.password,
@@ -87,11 +101,24 @@ const Register = () => {
         state: formData.state,
         country: formData.country,
       });
-      toast({
-        title: "Registration successful!",
-        description: "Welcome to Universal Reciters. Complete payment to activate your account.",
-      });
-      navigate("/payment");
+
+      if (error) {
+        let message = error.message;
+        if (message.includes("already registered")) {
+          message = "This email is already registered. Please login instead.";
+        }
+        toast({
+          title: "Registration failed",
+          description: message,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Registration successful!",
+          description: "Welcome to Universal Reciters. You can now access your dashboard.",
+        });
+        navigate("/dashboard");
+      }
     } catch (error) {
       toast({
         title: "Registration failed",
@@ -102,6 +129,14 @@ const Register = () => {
       setIsLoading(false);
     }
   };
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-hero islamic-pattern">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-hero islamic-pattern p-4 py-12">
@@ -169,7 +204,7 @@ const Register = () => {
                     <Input
                       id="password"
                       type={showPassword ? "text" : "password"}
-                      placeholder="Create a password"
+                      placeholder="Create a password (min 6 chars)"
                       value={formData.password}
                       onChange={(e) => handleChange("password", e.target.value)}
                       required
@@ -194,17 +229,6 @@ const Register = () => {
                     onChange={(e) => handleChange("confirmPassword", e.target.value)}
                     required
                   />
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Profile Picture (Optional)</Label>
-                  <div className="border-2 border-dashed border-border rounded-lg p-4 text-center hover:border-primary transition-colors cursor-pointer">
-                    <Upload className="w-8 h-8 mx-auto text-muted-foreground mb-2" />
-                    <p className="text-sm text-muted-foreground">
-                      Click to upload or drag and drop
-                    </p>
-                    <input type="file" accept="image/*" className="hidden" />
-                  </div>
                 </div>
 
                 <Button type="button" className="w-full" onClick={handleNext}>
@@ -277,7 +301,7 @@ const Register = () => {
                   </Button>
                   <Button type="submit" className="flex-1 gap-2" disabled={isLoading}>
                     {isLoading ? (
-                      <div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+                      <Loader2 className="w-4 h-4 animate-spin" />
                     ) : (
                       <UserPlus className="w-4 h-4" />
                     )}
