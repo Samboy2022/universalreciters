@@ -1,46 +1,42 @@
-import { useState, useEffect } from "react";
-import { Link, useNavigate, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import Logo from "@/components/ui/Logo";
 import {
   LayoutDashboard,
-  Play,
-  Mic,
-  Trophy,
-  Wallet,
-  MessageSquare,
+  Video,
+  Users,
+  Key,
+  CreditCard,
   Settings,
   LogOut,
   Menu,
-  X,
   Home,
-  Video,
+  ChevronLeft,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useState } from "react";
 
-interface DashboardLayoutProps {
+interface AdminLayoutProps {
   children: React.ReactNode;
 }
 
 const navItems = [
-  { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-  { href: "/dashboard/learn", icon: Play, label: "Learn" },
-  { href: "/dashboard/recite", icon: Mic, label: "Recite" },
-  { href: "/dashboard/rankings", icon: Trophy, label: "Rankings" },
-  { href: "/dashboard/wallet", icon: Wallet, label: "Wallet" },
-  { href: "/dashboard/chat", icon: MessageSquare, label: "Chat" },
-  { href: "/streaming", icon: Video, label: "Streaming" },
+  { href: "/admin", icon: LayoutDashboard, label: "Overview" },
+  { href: "/admin/videos", icon: Video, label: "Videos" },
+  { href: "/admin/users", icon: Users, label: "Users" },
+  { href: "/admin/pins", icon: Key, label: "Redemption PINs" },
+  { href: "/admin/payments", icon: CreditCard, label: "Payments" },
 ];
 
-const DashboardLayout = ({ children }: DashboardLayoutProps) => {
+const AdminLayout = ({ children }: AdminLayoutProps) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { profile, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     navigate("/");
   };
 
@@ -58,37 +54,23 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
         <div className="flex flex-col h-full">
           {/* Logo */}
           <div className="p-4 border-b border-sidebar-border">
-            <Link to="/">
-              <Logo size="md" />
-            </Link>
+            <div className="flex items-center gap-2">
+              <Logo size="sm" />
+              <span className="text-sm font-semibold text-sidebar-foreground">Admin</span>
+            </div>
           </div>
 
-          {/* User Info */}
+          {/* Admin Info */}
           <div className="p-4 border-b border-sidebar-border">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-sidebar-primary flex items-center justify-center text-sidebar-primary-foreground font-semibold">
-                {profile?.name?.charAt(0) || "U"}
+                {profile?.name?.charAt(0) || "A"}
               </div>
               <div className="flex-1 min-w-0">
                 <p className="font-medium text-sidebar-foreground truncate">
-                  {profile?.name || "Guest User"}
+                  {profile?.name || "Admin"}
                 </p>
-                <p className="text-xs text-sidebar-foreground/70 truncate">
-                  {profile?.state || "Location"}
-                </p>
-              </div>
-            </div>
-            <div className="mt-3 flex items-center gap-2 text-xs">
-              <div className="flex-1 bg-sidebar-accent rounded-full px-2 py-1 text-center">
-                <span className="text-sidebar-primary font-semibold">
-                  {profile?.points || 0}
-                </span>{" "}
-                <span className="text-sidebar-foreground/70">pts</span>
-              </div>
-              <div className="flex-1 bg-sidebar-accent rounded-full px-2 py-1 text-center">
-                <span className="text-sidebar-primary font-semibold">
-                  ₦{(profile?.money_balance || 0).toLocaleString()}
-                </span>
+                <p className="text-xs text-sidebar-foreground/70">Administrator</p>
               </div>
             </div>
           </div>
@@ -116,11 +98,11 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
           {/* Bottom Actions */}
           <div className="p-4 border-t border-sidebar-border space-y-1">
             <Link
-              to="/dashboard/settings"
+              to="/dashboard"
               className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
             >
-              <Settings className="w-5 h-5" />
-              Settings
+              <ChevronLeft className="w-5 h-5" />
+              Back to App
             </Link>
             <button
               onClick={handleLogout}
@@ -151,14 +133,12 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
           >
             <Menu className="w-5 h-5" />
           </button>
-          <Link to="/" className="lg:hidden">
-            <Home className="w-5 h-5 text-muted-foreground" />
-          </Link>
+          <h1 className="font-semibold text-foreground">Admin Dashboard</h1>
           <div className="flex-1" />
           <Button size="sm" variant="outline" asChild>
-            <Link to="/dashboard/wallet">
-              <Wallet className="w-4 h-4 mr-2" />
-              ₦{(profile?.money_balance || 0).toLocaleString()}
+            <Link to="/">
+              <Home className="w-4 h-4 mr-2" />
+              View Site
             </Link>
           </Button>
         </header>
@@ -170,4 +150,4 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   );
 };
 
-export default DashboardLayout;
+export default AdminLayout;
