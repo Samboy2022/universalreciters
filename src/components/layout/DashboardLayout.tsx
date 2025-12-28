@@ -47,91 +47,92 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const isActive = (path: string) => location.pathname === path;
 
   return (
-    <div className="min-h-screen bg-background flex">
-      {/* Sidebar */}
+    <div className="min-h-screen bg-background flex w-full">
+      {/* Sidebar - Fixed position */}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 w-64 bg-sidebar transform transition-transform duration-300 lg:translate-x-0 lg:static",
+          "fixed inset-y-0 left-0 z-50 w-64 bg-sidebar transform transition-transform duration-300 lg:translate-x-0 flex flex-col",
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
-        <div className="flex flex-col h-full">
-          {/* Logo */}
-          <div className="p-4 border-b border-sidebar-border">
-            <Link to="/">
-              <Logo size="md" />
-            </Link>
-          </div>
+        {/* Logo - Fixed at top */}
+        <div className="p-4 border-b border-sidebar-border flex-shrink-0">
+          <Link to="/">
+            <Logo size="md" />
+          </Link>
+        </div>
 
-          {/* User Info */}
-          <div className="p-4 border-b border-sidebar-border">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-sidebar-primary flex items-center justify-center text-sidebar-primary-foreground font-semibold">
-                {profile?.name?.charAt(0) || "U"}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-medium text-sidebar-foreground truncate">
-                  {profile?.name || "Guest User"}
-                </p>
-                <p className="text-xs text-sidebar-foreground/70 truncate">
-                  {profile?.state || "Location"}
-                </p>
-              </div>
+        {/* User Info - Fixed below logo */}
+        <div className="p-4 border-b border-sidebar-border flex-shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-sidebar-primary flex items-center justify-center text-sidebar-primary-foreground font-semibold">
+              {profile?.name?.charAt(0) || "U"}
             </div>
-            <div className="mt-3 flex items-center gap-2 text-xs">
-              <div className="flex-1 bg-sidebar-accent rounded-full px-2 py-1 text-center">
-                <span className="text-sidebar-primary font-semibold">
-                  {profile?.points || 0}
-                </span>{" "}
-                <span className="text-sidebar-foreground/70">pts</span>
-              </div>
-              <div className="flex-1 bg-sidebar-accent rounded-full px-2 py-1 text-center">
-                <span className="text-sidebar-primary font-semibold">
-                  ₦{(profile?.money_balance || 0).toLocaleString()}
-                </span>
-              </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-medium text-sidebar-foreground truncate">
+                {profile?.name || "Guest User"}
+              </p>
+              <p className="text-xs text-sidebar-foreground/70 truncate">
+                {profile?.state || "Location"}
+              </p>
             </div>
           </div>
-
-          {/* Navigation */}
-          <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-            {navItems.map((item) => (
-              <Link
-                key={item.href}
-                to={item.href}
-                onClick={() => setSidebarOpen(false)}
-                className={cn(
-                  "flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors",
-                  isActive(item.href)
-                    ? "bg-sidebar-primary text-sidebar-primary-foreground"
-                    : "text-sidebar-foreground hover:bg-sidebar-accent"
-                )}
-              >
-                <item.icon className="w-5 h-5" />
-                {item.label}
-              </Link>
-            ))}
-          </nav>
-
-          {/* Bottom Actions */}
-          <div className="p-4 border-t border-sidebar-border space-y-1">
-            <Link
-              to="/dashboard/settings"
-              className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
-            >
-              <Settings className="w-5 h-5" />
-              Settings
-            </Link>
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-destructive-foreground hover:bg-destructive/10 transition-colors w-full"
-            >
-              <LogOut className="w-5 h-5" />
-              Logout
-            </button>
+          <div className="mt-3 flex items-center gap-2 text-xs">
+            <div className="flex-1 bg-sidebar-accent rounded-full px-2 py-1 text-center">
+              <span className="text-sidebar-primary font-semibold">
+                {profile?.points || 0}
+              </span>{" "}
+              <span className="text-sidebar-foreground/70">pts</span>
+            </div>
+            <div className="flex-1 bg-sidebar-accent rounded-full px-2 py-1 text-center">
+              <span className="text-sidebar-primary font-semibold">
+                ₦{(profile?.money_balance || 0).toLocaleString()}
+              </span>
+            </div>
           </div>
         </div>
+
+        {/* Navigation - Scrollable */}
+        <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
+          {navItems.map((item) => (
+            <Link
+              key={item.href}
+              to={item.href}
+              onClick={() => setSidebarOpen(false)}
+              className={cn(
+                "flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors",
+                isActive(item.href)
+                  ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                  : "text-sidebar-foreground hover:bg-sidebar-accent"
+              )}
+            >
+              <item.icon className="w-5 h-5" />
+              {item.label}
+            </Link>
+          ))}
+        </nav>
+
+        {/* Bottom Actions - Fixed at bottom */}
+        <div className="p-4 border-t border-sidebar-border space-y-1 flex-shrink-0">
+          <Link
+            to="/dashboard/settings"
+            className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
+          >
+            <Settings className="w-5 h-5" />
+            Settings
+          </Link>
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-destructive hover:bg-destructive/10 transition-colors w-full"
+          >
+            <LogOut className="w-5 h-5" />
+            Logout
+          </button>
+        </div>
       </aside>
+
+      {/* Sidebar spacer for large screens */}
+      <div className="hidden lg:block w-64 flex-shrink-0" />
 
       {/* Overlay */}
       {sidebarOpen && (

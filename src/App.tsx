@@ -15,6 +15,9 @@ import Streaming from "./pages/Streaming";
 import Leaderboard from "./pages/Leaderboard";
 import Wallet from "./pages/Wallet";
 import Chat from "./pages/Chat";
+import Learn from "./pages/dashboard/Learn";
+import Recite from "./pages/dashboard/Recite";
+import Rankings from "./pages/dashboard/Rankings";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminVideos from "./pages/admin/AdminVideos";
 import AdminUsers from "./pages/admin/AdminUsers";
@@ -46,6 +49,21 @@ const App = () => (
             <Route path="/dashboard" element={
               <ProtectedRoute>
                 <Dashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/dashboard/learn" element={
+              <ProtectedRoute>
+                <Learn />
+              </ProtectedRoute>
+            } />
+            <Route path="/dashboard/recite" element={
+              <ProtectedRoute>
+                <Recite />
+              </ProtectedRoute>
+            } />
+            <Route path="/dashboard/rankings" element={
+              <ProtectedRoute>
+                <Rankings />
               </ProtectedRoute>
             } />
             <Route path="/streaming" element={
