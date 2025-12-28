@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import AdminLayout from "@/components/layout/AdminLayout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,7 +10,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Edit, Trash2, Video, Eye, Loader2 } from "lucide-react";
+import { Plus, Edit, Trash2, Video, Eye, Loader2, Upload, X, Image as ImageIcon } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
 
 interface VideoData {
   id: string;
@@ -40,6 +41,12 @@ const AdminVideos = () => {
     duration: 0,
   });
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
+  const thumbnailInputRef = useRef<HTMLInputElement>(null);
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -59,19 +66,70 @@ const AdminVideos = () => {
     fetchVideos();
   }, []);
 
+  const uploadFile = async (file: File, bucket: string): Promise<string | null> => {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+    const filePath = `${user?.id}/${fileName}`;
+
+    const { error } = await supabase.storage
+      .from(bucket)
+      .upload(filePath, file, {
+        cacheControl: '3600',
+        upsert: false,
+      });
+
+    if (error) {
+      console.error(`Upload error for ${bucket}:`, error);
+      return null;
+    }
+
+    const { data: { publicUrl } } = supabase.storage
+      .from(bucket)
+      .getPublicUrl(filePath);
+
+    return publicUrl;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
+    setUploadProgress(0);
 
     try {
+      let videoUrl = formData.video_url;
+      let thumbnailUrl = formData.thumbnail_url;
+
+      // Upload video if file is selected
+      if (videoFile) {
+        setIsUploading(true);
+        setUploadProgress(25);
+        const uploadedUrl = await uploadFile(videoFile, 'videos');
+        if (!uploadedUrl) {
+          throw new Error("Failed to upload video");
+        }
+        videoUrl = uploadedUrl;
+        setUploadProgress(60);
+      }
+
+      // Upload thumbnail if file is selected
+      if (thumbnailFile) {
+        setUploadProgress(75);
+        const uploadedUrl = await uploadFile(thumbnailFile, 'thumbnails');
+        if (!uploadedUrl) {
+          throw new Error("Failed to upload thumbnail");
+        }
+        thumbnailUrl = uploadedUrl;
+        setUploadProgress(90);
+      }
+
       if (editingVideo) {
         const { error } = await supabase
           .from("videos")
           .update({
             title: formData.title,
             description: formData.description || null,
-            video_url: formData.video_url,
-            thumbnail_url: formData.thumbnail_url || null,
+            video_url: videoUrl,
+            thumbnail_url: thumbnailUrl || null,
             arabic_text: formData.arabic_text,
             unlock_fee: formData.unlock_fee,
             duration: formData.duration || null,
@@ -84,8 +142,8 @@ const AdminVideos = () => {
         const { error } = await supabase.from("videos").insert({
           title: formData.title,
           description: formData.description || null,
-          video_url: formData.video_url,
-          thumbnail_url: formData.thumbnail_url || null,
+          video_url: videoUrl,
+          thumbnail_url: thumbnailUrl || null,
           arabic_text: formData.arabic_text,
           unlock_fee: formData.unlock_fee,
           duration: formData.duration || null,
@@ -96,6 +154,7 @@ const AdminVideos = () => {
         toast({ title: "Video created successfully" });
       }
 
+      setUploadProgress(100);
       setIsDialogOpen(false);
       resetForm();
       fetchVideos();
@@ -107,6 +166,8 @@ const AdminVideos = () => {
       });
     } finally {
       setIsSaving(false);
+      setIsUploading(false);
+      setUploadProgress(0);
     }
   };
 
@@ -121,6 +182,8 @@ const AdminVideos = () => {
       unlock_fee: video.unlock_fee,
       duration: video.duration || 0,
     });
+    setVideoFile(null);
+    setThumbnailFile(null);
     setIsDialogOpen(true);
   };
 
@@ -148,6 +211,32 @@ const AdminVideos = () => {
       unlock_fee: 0,
       duration: 0,
     });
+    setVideoFile(null);
+    setThumbnailFile(null);
+  };
+
+  const handleVideoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 100 * 1024 * 1024) {
+        toast({ title: "Video must be less than 100MB", variant: "destructive" });
+        return;
+      }
+      setVideoFile(file);
+      setFormData({ ...formData, video_url: "" });
+    }
+  };
+
+  const handleThumbnailSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast({ title: "Thumbnail must be less than 5MB", variant: "destructive" });
+        return;
+      }
+      setThumbnailFile(file);
+      setFormData({ ...formData, thumbnail_url: "" });
+    }
   };
 
   return (
@@ -156,7 +245,7 @@ const AdminVideos = () => {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-foreground">Video Management</h1>
-            <p className="text-muted-foreground">Manage recitation videos</p>
+            <p className="text-muted-foreground">Upload and manage recitation videos</p>
           </div>
           <Dialog open={isDialogOpen} onOpenChange={(open) => { setIsDialogOpen(open); if (!open) resetForm(); }}>
             <DialogTrigger asChild>
@@ -190,6 +279,7 @@ const AdminVideos = () => {
                     />
                   </div>
                 </div>
+                
                 <div className="space-y-2">
                   <Label htmlFor="description">Description</Label>
                   <Textarea
@@ -199,38 +289,156 @@ const AdminVideos = () => {
                     rows={2}
                   />
                 </div>
+
+                {/* Video Upload */}
                 <div className="space-y-2">
-                  <Label htmlFor="video_url">Video URL *</Label>
+                  <Label>Video *</Label>
+                  <div className="border-2 border-dashed border-border rounded-lg p-4">
+                    {videoFile ? (
+                      <div className="flex items-center justify-between bg-muted p-3 rounded-lg">
+                        <div className="flex items-center gap-2">
+                          <Video className="w-5 h-5 text-primary" />
+                          <span className="text-sm truncate max-w-[200px]">{videoFile.name}</span>
+                          <span className="text-xs text-muted-foreground">
+                            ({(videoFile.size / (1024 * 1024)).toFixed(2)} MB)
+                          </span>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setVideoFile(null)}
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    ) : formData.video_url ? (
+                      <div className="flex items-center justify-between bg-muted p-3 rounded-lg">
+                        <div className="flex items-center gap-2">
+                          <Video className="w-5 h-5 text-primary" />
+                          <span className="text-sm truncate max-w-[300px]">{formData.video_url}</span>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setFormData({ ...formData, video_url: "" })}
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="text-center">
+                        <Upload className="w-8 h-8 mx-auto text-muted-foreground mb-2" />
+                        <p className="text-sm text-muted-foreground mb-2">
+                          Upload a video file or paste URL
+                        </p>
+                        <div className="flex gap-2 justify-center">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => videoInputRef.current?.click()}
+                          >
+                            <Upload className="w-4 h-4 mr-2" />
+                            Upload File
+                          </Button>
+                        </div>
+                        <input
+                          ref={videoInputRef}
+                          type="file"
+                          accept="video/*"
+                          onChange={handleVideoSelect}
+                          className="hidden"
+                        />
+                      </div>
+                    )}
+                    {!videoFile && !formData.video_url && (
+                      <div className="mt-3">
+                        <Label htmlFor="video_url" className="text-xs">Or paste video URL</Label>
+                        <Input
+                          id="video_url"
+                          value={formData.video_url}
+                          onChange={(e) => setFormData({ ...formData, video_url: e.target.value })}
+                          placeholder="https://..."
+                          className="mt-1"
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Thumbnail Upload */}
+                <div className="space-y-2">
+                  <Label>Thumbnail</Label>
+                  <div className="border-2 border-dashed border-border rounded-lg p-4">
+                    {thumbnailFile ? (
+                      <div className="flex items-center justify-between bg-muted p-3 rounded-lg">
+                        <div className="flex items-center gap-2">
+                          <ImageIcon className="w-5 h-5 text-primary" />
+                          <span className="text-sm truncate max-w-[200px]">{thumbnailFile.name}</span>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setThumbnailFile(null)}
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    ) : formData.thumbnail_url ? (
+                      <div className="flex items-center justify-between bg-muted p-3 rounded-lg">
+                        <img 
+                          src={formData.thumbnail_url} 
+                          alt="Thumbnail" 
+                          className="w-16 h-10 object-cover rounded"
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setFormData({ ...formData, thumbnail_url: "" })}
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="text-center">
+                        <ImageIcon className="w-8 h-8 mx-auto text-muted-foreground mb-2" />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => thumbnailInputRef.current?.click()}
+                        >
+                          <Upload className="w-4 h-4 mr-2" />
+                          Upload Thumbnail
+                        </Button>
+                        <input
+                          ref={thumbnailInputRef}
+                          type="file"
+                          accept="image/*"
+                          onChange={handleThumbnailSelect}
+                          className="hidden"
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="duration">Duration (seconds)</Label>
                   <Input
-                    id="video_url"
-                    value={formData.video_url}
-                    onChange={(e) => setFormData({ ...formData, video_url: e.target.value })}
-                    placeholder="https://..."
-                    required
+                    id="duration"
+                    type="number"
+                    value={formData.duration}
+                    onChange={(e) => setFormData({ ...formData, duration: parseInt(e.target.value) || 0 })}
                   />
                 </div>
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="thumbnail_url">Thumbnail URL</Label>
-                    <Input
-                      id="thumbnail_url"
-                      value={formData.thumbnail_url}
-                      onChange={(e) => setFormData({ ...formData, thumbnail_url: e.target.value })}
-                      placeholder="https://..."
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="duration">Duration (seconds)</Label>
-                    <Input
-                      id="duration"
-                      type="number"
-                      value={formData.duration}
-                      onChange={(e) => setFormData({ ...formData, duration: parseInt(e.target.value) || 0 })}
-                    />
-                  </div>
-                </div>
+
                 <div className="space-y-2">
-                  <Label htmlFor="arabic_text">Arabic Text *</Label>
+                  <Label htmlFor="arabic_text">Arabic Text (Surah Text) *</Label>
                   <Textarea
                     id="arabic_text"
                     value={formData.arabic_text}
@@ -242,11 +450,22 @@ const AdminVideos = () => {
                     required
                   />
                 </div>
+
+                {isUploading && (
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span>Uploading...</span>
+                      <span>{uploadProgress}%</span>
+                    </div>
+                    <Progress value={uploadProgress} />
+                  </div>
+                )}
+
                 <div className="flex gap-3 pt-4">
                   <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
                     Cancel
                   </Button>
-                  <Button type="submit" disabled={isSaving}>
+                  <Button type="submit" disabled={isSaving || (!formData.video_url && !videoFile)}>
                     {isSaving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                     {editingVideo ? "Update" : "Create"} Video
                   </Button>
@@ -271,6 +490,7 @@ const AdminVideos = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead>Thumbnail</TableHead>
                     <TableHead>Title</TableHead>
                     <TableHead>Unlock Fee</TableHead>
                     <TableHead>Views</TableHead>
@@ -281,6 +501,19 @@ const AdminVideos = () => {
                 <TableBody>
                   {videos.map((video) => (
                     <TableRow key={video.id}>
+                      <TableCell>
+                        {video.thumbnail_url ? (
+                          <img 
+                            src={video.thumbnail_url} 
+                            alt={video.title}
+                            className="w-16 h-10 object-cover rounded"
+                          />
+                        ) : (
+                          <div className="w-16 h-10 bg-muted rounded flex items-center justify-center">
+                            <Video className="w-5 h-5 text-muted-foreground" />
+                          </div>
+                        )}
+                      </TableCell>
                       <TableCell className="font-medium">{video.title}</TableCell>
                       <TableCell>{video.unlock_fee > 0 ? `₦${video.unlock_fee}` : "Free"}</TableCell>
                       <TableCell>

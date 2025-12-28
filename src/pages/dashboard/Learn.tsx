@@ -1,11 +1,14 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
 import { 
   Play, 
   Lock, 
@@ -14,132 +17,126 @@ import {
   CheckCircle, 
   Search,
   BookOpen,
-  Star,
-  Trophy
+  Trophy,
+  Loader2,
+  X
 } from "lucide-react";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 
-interface LearningVideo {
+interface Video {
   id: string;
   title: string;
-  surah: string;
-  ayah: string;
-  duration: string;
+  description: string | null;
+  video_url: string;
+  thumbnail_url: string | null;
+  arabic_text: string;
+  unlock_fee: number;
+  duration: number | null;
   views: number;
-  unlockFee: number;
-  isUnlocked: boolean;
-  isCompleted: boolean;
-  difficulty: "beginner" | "intermediate" | "advanced";
-  arabicText: string;
+  created_at: string;
 }
 
-const mockVideos: LearningVideo[] = [
-  {
-    id: "1",
-    title: "Surah Al-Fatiha - Complete",
-    surah: "Al-Fatiha",
-    ayah: "1-7",
-    duration: "3:45",
-    views: 15420,
-    unlockFee: 0,
-    isUnlocked: true,
-    isCompleted: true,
-    difficulty: "beginner",
-    arabicText: "بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ",
-  },
-  {
-    id: "2",
-    title: "Surah Al-Ikhlas",
-    surah: "Al-Ikhlas",
-    ayah: "1-4",
-    duration: "1:30",
-    views: 12350,
-    unlockFee: 0,
-    isUnlocked: true,
-    isCompleted: false,
-    difficulty: "beginner",
-    arabicText: "قُلْ هُوَ اللَّهُ أَحَدٌ",
-  },
-  {
-    id: "3",
-    title: "Surah Al-Falaq",
-    surah: "Al-Falaq",
-    ayah: "1-5",
-    duration: "2:15",
-    views: 9870,
-    unlockFee: 30,
-    isUnlocked: false,
-    isCompleted: false,
-    difficulty: "beginner",
-    arabicText: "قُلْ أَعُوذُ بِرَبِّ الْفَلَقِ",
-  },
-  {
-    id: "4",
-    title: "Surah An-Nas",
-    surah: "An-Nas",
-    ayah: "1-6",
-    duration: "2:45",
-    views: 8540,
-    unlockFee: 30,
-    isUnlocked: false,
-    isCompleted: false,
-    difficulty: "beginner",
-    arabicText: "قُلْ أَعُوذُ بِرَبِّ النَّاسِ",
-  },
-  {
-    id: "5",
-    title: "Surah Al-Baqarah - Ayat Kursi",
-    surah: "Al-Baqarah",
-    ayah: "255",
-    duration: "5:20",
-    views: 23100,
-    unlockFee: 50,
-    isUnlocked: false,
-    isCompleted: false,
-    difficulty: "intermediate",
-    arabicText: "اللَّهُ لَا إِلَهَ إِلَّا هُوَ الْحَيُّ الْقَيُّومُ",
-  },
-  {
-    id: "6",
-    title: "Surah Ya-Sin - First 10 Ayat",
-    surah: "Ya-Sin",
-    ayah: "1-10",
-    duration: "8:15",
-    views: 18500,
-    unlockFee: 100,
-    isUnlocked: false,
-    isCompleted: false,
-    difficulty: "advanced",
-    arabicText: "يس وَالْقُرْآنِ الْحَكِيمِ",
-  },
-];
+interface UserRecitation {
+  video_id: string;
+  score: number;
+}
 
 const Learn = () => {
+  const [videos, setVideos] = useState<Video[]>([]);
+  const [userRecitations, setUserRecitations] = useState<UserRecitation[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("all");
-  const [selectedVideo, setSelectedVideo] = useState<LearningVideo | null>(null);
+  const [selectedVideo, setSelectedVideo] = useState<Video | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
+  const { user, profile } = useAuth();
+  const { toast } = useToast();
 
-  const filteredVideos = mockVideos.filter((video) => {
+  const fetchVideos = async () => {
+    const { data, error } = await supabase
+      .from("videos")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (data && !error) {
+      setVideos(data);
+    }
+    setIsLoading(false);
+  };
+
+  const fetchUserRecitations = async () => {
+    if (!user) return;
+    
+    const { data } = await supabase
+      .from("recitations")
+      .select("video_id, score")
+      .eq("user_id", user.id);
+
+    if (data) {
+      setUserRecitations(data);
+    }
+  };
+
+  useEffect(() => {
+    fetchVideos();
+    fetchUserRecitations();
+  }, [user]);
+
+  const isVideoUnlocked = (video: Video) => {
+    if (video.unlock_fee === 0) return true;
+    // Check if user has enough balance or has already unlocked
+    return (profile?.money_balance || 0) >= video.unlock_fee;
+  };
+
+  const isVideoCompleted = (videoId: string) => {
+    return userRecitations.some(r => r.video_id === videoId && r.score >= 70);
+  };
+
+  const getVideoScore = (videoId: string) => {
+    const recitation = userRecitations.find(r => r.video_id === videoId);
+    return recitation?.score;
+  };
+
+  const filteredVideos = videos.filter((video) => {
     const matchesSearch = video.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      video.surah.toLowerCase().includes(searchQuery.toLowerCase());
+      video.description?.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesTab = activeTab === "all" || 
-      (activeTab === "unlocked" && video.isUnlocked) ||
-      (activeTab === "completed" && video.isCompleted) ||
-      video.difficulty === activeTab;
+      (activeTab === "unlocked" && isVideoUnlocked(video)) ||
+      (activeTab === "completed" && isVideoCompleted(video.id));
     return matchesSearch && matchesTab;
   });
 
-  const completedCount = mockVideos.filter(v => v.isCompleted).length;
-  const unlockedCount = mockVideos.filter(v => v.isUnlocked).length;
-  const progress = (completedCount / mockVideos.length) * 100;
+  const completedCount = videos.filter(v => isVideoCompleted(v.id)).length;
+  const unlockedCount = videos.filter(v => isVideoUnlocked(v)).length;
+  const progress = videos.length > 0 ? (completedCount / videos.length) * 100 : 0;
 
-  const getDifficultyColor = (difficulty: string) => {
-    switch (difficulty) {
-      case "beginner": return "bg-success/10 text-success";
-      case "intermediate": return "bg-warning/10 text-warning";
-      case "advanced": return "bg-destructive/10 text-destructive";
-      default: return "bg-muted text-muted-foreground";
+  const formatDuration = (seconds: number | null) => {
+    if (!seconds) return "N/A";
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const handlePlayVideo = (video: Video) => {
+    if (!isVideoUnlocked(video)) {
+      toast({
+        title: "Video Locked",
+        description: `This video requires ₦${video.unlock_fee} to unlock.`,
+        variant: "destructive",
+      });
+      return;
     }
+    setSelectedVideo(video);
+    setIsVideoModalOpen(true);
+    setIsPlaying(true);
+
+    // Increment view count
+    supabase
+      .from("videos")
+      .update({ views: video.views + 1 })
+      .eq("id", video.id)
+      .then();
   };
 
   return (
@@ -158,171 +155,173 @@ const Learn = () => {
               <Trophy className="w-8 h-8 text-primary" />
               <div>
                 <p className="text-sm text-muted-foreground">Progress</p>
-                <p className="text-lg font-bold">{completedCount}/{mockVideos.length} Complete</p>
+                <p className="text-lg font-bold">{completedCount}/{videos.length} Complete</p>
               </div>
             </div>
             <Progress value={progress} className="mt-2" />
           </Card>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Video Player Section */}
-          <div className="lg:col-span-2">
-            <Card className="h-full">
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2">
-                  <Play className="w-5 h-5 text-primary" />
-                  {selectedVideo ? selectedVideo.title : "Select a Lesson"}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {/* Video Player */}
-                <div className="relative aspect-video bg-muted rounded-lg overflow-hidden mb-4">
-                  {selectedVideo ? (
-                    <>
-                      <div className="absolute inset-0 flex items-center justify-center bg-primary/5">
-                        <div className="text-center p-4">
-                          <div className="font-arabic text-3xl text-primary mb-4" dir="rtl">
-                            {selectedVideo.arabicText}
-                          </div>
-                          <p className="text-sm text-muted-foreground">
-                            {selectedVideo.surah} ({selectedVideo.ayah})
-                          </p>
-                        </div>
+        {/* Search and Filter */}
+        <div className="flex flex-col md:flex-row gap-4">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="Search lessons..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList>
+              <TabsTrigger value="all">All ({videos.length})</TabsTrigger>
+              <TabsTrigger value="unlocked">Unlocked ({unlockedCount})</TabsTrigger>
+              <TabsTrigger value="completed">Completed ({completedCount})</TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </div>
+
+        {/* Video Grid */}
+        {isLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+          </div>
+        ) : filteredVideos.length === 0 ? (
+          <div className="text-center py-12">
+            <BookOpen className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+            <p className="text-muted-foreground">No lessons found</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredVideos.map((video) => {
+              const unlocked = isVideoUnlocked(video);
+              const completed = isVideoCompleted(video.id);
+              const score = getVideoScore(video.id);
+
+              return (
+                <Card 
+                  key={video.id} 
+                  className={`overflow-hidden transition-all hover:shadow-lg cursor-pointer ${
+                    !unlocked ? 'opacity-75' : ''
+                  }`}
+                  onClick={() => handlePlayVideo(video)}
+                >
+                  {/* Thumbnail */}
+                  <div className="relative aspect-video bg-muted">
+                    {video.thumbnail_url ? (
+                      <img
+                        src={video.thumbnail_url}
+                        alt={video.title}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <BookOpen className="w-12 h-12 text-muted-foreground" />
                       </div>
-                      <button
-                        onClick={() => setIsPlaying(!isPlaying)}
-                        className="absolute inset-0 flex items-center justify-center hover:bg-foreground/5 transition-colors"
-                      >
-                        <div className={`w-16 h-16 rounded-full bg-primary flex items-center justify-center shadow-glow ${isPlaying ? 'opacity-0' : 'opacity-100'} transition-opacity`}>
-                          <Play className="w-8 h-8 text-primary-foreground ml-1" />
+                    )}
+                    
+                    {/* Overlay */}
+                    <div className="absolute inset-0 bg-foreground/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                      {unlocked ? (
+                        <div className="w-14 h-14 rounded-full bg-primary flex items-center justify-center">
+                          <Play className="w-7 h-7 text-primary-foreground ml-1" />
                         </div>
-                      </button>
-                      {isPlaying && (
-                        <div className="absolute bottom-4 left-4 right-4">
-                          <div className="bg-foreground/80 backdrop-blur rounded-full h-1">
-                            <div 
-                              className="bg-primary h-full rounded-full animate-pulse" 
-                              style={{ width: "35%" }}
-                            />
-                          </div>
+                      ) : (
+                        <div className="w-14 h-14 rounded-full bg-muted flex items-center justify-center">
+                          <Lock className="w-7 h-7 text-muted-foreground" />
                         </div>
                       )}
-                    </>
-                  ) : (
-                    <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
-                      <BookOpen className="w-12 h-12 mb-2" />
-                      <p>Select a lesson to start learning</p>
                     </div>
-                  )}
-                </div>
 
-                {selectedVideo && (
-                  <div className="flex flex-wrap gap-2">
-                    <Badge variant="secondary" className={getDifficultyColor(selectedVideo.difficulty)}>
-                      {selectedVideo.difficulty}
-                    </Badge>
-                    <Badge variant="outline" className="gap-1">
-                      <Clock className="w-3 h-3" />
-                      {selectedVideo.duration}
-                    </Badge>
-                    <Badge variant="outline" className="gap-1">
-                      <Eye className="w-3 h-3" />
-                      {selectedVideo.views.toLocaleString()} views
-                    </Badge>
-                    {selectedVideo.isCompleted && (
-                      <Badge className="bg-success text-success-foreground gap-1">
+                    {/* Duration Badge */}
+                    {video.duration && (
+                      <Badge variant="secondary" className="absolute bottom-2 right-2 gap-1">
+                        <Clock className="w-3 h-3" />
+                        {formatDuration(video.duration)}
+                      </Badge>
+                    )}
+
+                    {/* Completed Badge */}
+                    {completed && (
+                      <Badge className="absolute top-2 right-2 bg-success text-success-foreground gap-1">
                         <CheckCircle className="w-3 h-3" />
                         Completed
                       </Badge>
                     )}
+
+                    {/* Lock Badge */}
+                    {!unlocked && (
+                      <Badge variant="destructive" className="absolute top-2 left-2 gap-1">
+                        <Lock className="w-3 h-3" />
+                        ₦{video.unlock_fee}
+                      </Badge>
+                    )}
                   </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
 
-          {/* Video List Section */}
-          <div className="lg:col-span-1">
-            <Card className="h-full flex flex-col">
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <BookOpen className="w-5 h-5 text-primary" />
-                  Lessons
-                </CardTitle>
-                <div className="relative mt-2">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Search lessons..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
-              </CardHeader>
-              <CardContent className="flex-1 flex flex-col">
-                <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-4">
-                  <TabsList className="grid grid-cols-3 w-full">
-                    <TabsTrigger value="all">All</TabsTrigger>
-                    <TabsTrigger value="unlocked">Unlocked</TabsTrigger>
-                    <TabsTrigger value="completed">Done</TabsTrigger>
-                  </TabsList>
-                </Tabs>
-
-                <div className="flex-1 space-y-2 overflow-y-auto max-h-[400px]">
-                  {filteredVideos.map((video) => (
-                    <button
-                      key={video.id}
-                      onClick={() => video.isUnlocked && setSelectedVideo(video)}
-                      className={`w-full text-left p-3 rounded-lg border transition-all ${
-                        selectedVideo?.id === video.id
-                          ? "border-primary bg-primary/5"
-                          : "border-border hover:border-primary/50 hover:bg-muted/50"
-                      } ${!video.isUnlocked && "opacity-60 cursor-not-allowed"}`}
-                    >
-                      <div className="flex items-start gap-3">
-                        <div className="w-10 h-10 rounded bg-muted flex items-center justify-center flex-shrink-0">
-                          {video.isCompleted ? (
-                            <CheckCircle className="w-5 h-5 text-success" />
-                          ) : video.isUnlocked ? (
-                            <Play className="w-5 h-5 text-primary" />
-                          ) : (
-                            <Lock className="w-5 h-5 text-muted-foreground" />
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h4 className="text-sm font-medium text-foreground truncate">
-                            {video.title}
-                          </h4>
-                          <div className="flex items-center gap-2 mt-1">
-                            <span className="text-xs text-muted-foreground">
-                              {video.duration}
-                            </span>
-                            <Badge variant="outline" className={`text-xs ${getDifficultyColor(video.difficulty)}`}>
-                              {video.difficulty}
-                            </Badge>
-                          </div>
-                        </div>
-                        {!video.isUnlocked && (
-                          <Badge variant="secondary" className="text-xs flex-shrink-0">
-                            ₦{video.unlockFee}
-                          </Badge>
-                        )}
-                      </div>
-                    </button>
-                  ))}
-
-                  {filteredVideos.length === 0 && (
-                    <div className="text-center py-8 text-muted-foreground">
-                      <Search className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                      <p>No lessons found</p>
+                  <CardContent className="p-4">
+                    <h3 className="font-semibold text-foreground mb-1 line-clamp-1">
+                      {video.title}
+                    </h3>
+                    {video.description && (
+                      <p className="text-sm text-muted-foreground mb-2 line-clamp-2">
+                        {video.description}
+                      </p>
+                    )}
+                    <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                      <span className="flex items-center gap-1">
+                        <Eye className="w-4 h-4" />
+                        {video.views.toLocaleString()}
+                      </span>
+                      {score && (
+                        <span className="flex items-center gap-1 text-primary">
+                          Score: {score}%
+                        </span>
+                      )}
                     </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Video Player Modal */}
+        <Dialog open={isVideoModalOpen} onOpenChange={setIsVideoModalOpen}>
+          <DialogContent className="max-w-4xl p-0">
+            {selectedVideo && (
+              <div className="relative">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute top-2 right-2 z-10 bg-foreground/50 hover:bg-foreground/70 text-background"
+                  onClick={() => setIsVideoModalOpen(false)}
+                >
+                  <X className="w-5 h-5" />
+                </Button>
+                <video
+                  src={selectedVideo.video_url}
+                  controls
+                  autoPlay
+                  className="w-full aspect-video"
+                />
+                <div className="p-4">
+                  <h2 className="text-xl font-bold text-foreground mb-2">
+                    {selectedVideo.title}
+                  </h2>
+                  <div className="font-arabic text-2xl text-center p-4 bg-muted rounded-lg" dir="rtl">
+                    {selectedVideo.arabic_text}
+                  </div>
+                  {selectedVideo.description && (
+                    <p className="text-muted-foreground mt-4">
+                      {selectedVideo.description}
+                    </p>
                   )}
                 </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </DashboardLayout>
   );
