@@ -1,6 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/contexts/AuthContext";
 import Logo from "@/components/ui/Logo";
 import {
@@ -12,10 +13,9 @@ import {
   MessageSquare,
   Settings,
   LogOut,
-  Menu,
-  X,
   Home,
   Video,
+  Star,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -23,7 +23,7 @@ interface DashboardLayoutProps {
   children: React.ReactNode;
 }
 
-const navItems = [
+const sidebarNavItems = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
   { href: "/dashboard/learn", icon: Play, label: "Learn" },
   { href: "/dashboard/recite", icon: Mic, label: "Recite" },
@@ -33,8 +33,15 @@ const navItems = [
   { href: "/streaming", icon: Video, label: "Streaming" },
 ];
 
+const mobileBottomNavItems = [
+  { href: "/dashboard", icon: Home, label: "Home" },
+  { href: "/dashboard/learn", icon: Play, label: "Learn" },
+  { href: "/dashboard/recite", icon: Mic, label: "Recite" },
+  { href: "/dashboard/wallet", icon: Wallet, label: "Wallet" },
+  { href: "/streaming", icon: Video, label: "Stream" },
+];
+
 const DashboardLayout = ({ children }: DashboardLayoutProps) => {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const { profile, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -48,21 +55,14 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
 
   return (
     <div className="min-h-screen bg-background flex w-full">
-      {/* Sidebar - Fixed position */}
-      <aside
-        className={cn(
-          "fixed inset-y-0 left-0 z-50 w-64 bg-sidebar transform transition-transform duration-300 lg:translate-x-0 flex flex-col",
-          sidebarOpen ? "translate-x-0" : "-translate-x-full"
-        )}
-      >
-        {/* Logo - Fixed at top */}
+      {/* Desktop Sidebar - hidden on mobile */}
+      <aside className="hidden lg:flex fixed inset-y-0 left-0 z-50 w-64 bg-sidebar flex-col">
         <div className="p-4 border-b border-sidebar-border flex-shrink-0">
           <Link to="/">
             <Logo size="md" />
           </Link>
         </div>
 
-        {/* User Info - Fixed below logo */}
         <div className="p-4 border-b border-sidebar-border flex-shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-sidebar-primary flex items-center justify-center text-sidebar-primary-foreground font-semibold">
@@ -92,13 +92,11 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
           </div>
         </div>
 
-        {/* Navigation - Scrollable */}
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-          {navItems.map((item) => (
+          {sidebarNavItems.map((item) => (
             <Link
               key={item.href}
               to={item.href}
-              onClick={() => setSidebarOpen(false)}
               className={cn(
                 "flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors",
                 isActive(item.href)
@@ -112,7 +110,6 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
           ))}
         </nav>
 
-        {/* Bottom Actions - Fixed at bottom */}
         <div className="p-4 border-t border-sidebar-border space-y-1 flex-shrink-0">
           <Link
             to="/dashboard/settings"
@@ -131,30 +128,53 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
         </div>
       </aside>
 
-      {/* Sidebar spacer for large screens */}
+      {/* Desktop sidebar spacer */}
       <div className="hidden lg:block w-64 flex-shrink-0" />
-
-      {/* Overlay */}
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 bg-foreground/50 z-40 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-h-screen">
-        {/* Top Bar */}
-        <header className="sticky top-0 z-30 bg-background/80 backdrop-blur-md border-b border-border p-4 flex items-center gap-4">
-          <button
-            onClick={() => setSidebarOpen(true)}
-            className="lg:hidden p-2 rounded-lg hover:bg-muted"
-          >
-            <Menu className="w-5 h-5" />
-          </button>
-          <Link to="/" className="lg:hidden">
-            <Home className="w-5 h-5 text-muted-foreground" />
+        {/* Mobile Header */}
+        <header className="sticky top-0 z-30 bg-background/80 backdrop-blur-md border-b border-border px-3 py-2 flex items-center gap-2 lg:hidden">
+          <Link to="/">
+            <Logo size="sm" />
           </Link>
+          <div className="flex-1" />
+
+          {/* Points badge */}
+          <div className="flex items-center gap-1 bg-accent/15 text-accent-foreground rounded-full px-2.5 py-1 text-xs font-semibold">
+            <Star className="w-3.5 h-3.5 text-accent" />
+            {profile?.points || 0}
+          </div>
+
+          {/* Wallet balance */}
+          <Link to="/dashboard/wallet" className="flex items-center gap-1 bg-primary/10 text-primary rounded-full px-2.5 py-1 text-xs font-semibold">
+            <Wallet className="w-3.5 h-3.5" />
+            ₦{(profile?.money_balance || 0).toLocaleString()}
+          </Link>
+
+          {/* Settings */}
+          <Link to="/dashboard/settings" className="p-1.5 rounded-full hover:bg-muted transition-colors">
+            <Settings className="w-5 h-5 text-muted-foreground" />
+          </Link>
+
+          {/* Logout */}
+          <button onClick={handleLogout} className="p-1.5 rounded-full hover:bg-destructive/10 transition-colors">
+            <LogOut className="w-5 h-5 text-destructive" />
+          </button>
+
+          {/* Avatar */}
+          <Link to="/dashboard/settings">
+            <Avatar className="w-8 h-8 border-2 border-primary/30">
+              <AvatarImage src={profile?.avatar_url || undefined} />
+              <AvatarFallback className="bg-primary text-primary-foreground text-xs font-semibold">
+                {profile?.name?.charAt(0) || "U"}
+              </AvatarFallback>
+            </Avatar>
+          </Link>
+        </header>
+
+        {/* Desktop Header */}
+        <header className="hidden lg:flex sticky top-0 z-30 bg-background/80 backdrop-blur-md border-b border-border p-4 items-center gap-4">
           <div className="flex-1" />
           <Button size="sm" variant="outline" asChild>
             <Link to="/dashboard/wallet">
@@ -164,9 +184,33 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
           </Button>
         </header>
 
-        {/* Page Content */}
-        <main className="flex-1 p-4 lg:p-6">{children}</main>
+        {/* Page Content - add bottom padding on mobile for nav bar */}
+        <main className="flex-1 p-4 lg:p-6 pb-20 lg:pb-6">{children}</main>
       </div>
+
+      {/* Mobile Bottom Navigation Bar */}
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-md border-t border-border">
+        <div className="flex items-center justify-around h-16 px-1">
+          {mobileBottomNavItems.map((item) => (
+            <Link
+              key={item.href}
+              to={item.href}
+              className={cn(
+                "flex flex-col items-center justify-center gap-0.5 flex-1 py-1.5 rounded-lg transition-colors",
+                isActive(item.href)
+                  ? "text-primary"
+                  : "text-muted-foreground"
+              )}
+            >
+              <item.icon className={cn("w-5 h-5", isActive(item.href) && "text-primary")} />
+              <span className="text-[10px] font-medium">{item.label}</span>
+              {isActive(item.href) && (
+                <div className="w-1 h-1 rounded-full bg-primary" />
+              )}
+            </Link>
+          ))}
+        </div>
+      </nav>
     </div>
   );
 };
