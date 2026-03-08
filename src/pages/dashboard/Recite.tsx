@@ -46,6 +46,16 @@ interface AnalysisResult {
   feedback: string;
 }
 
+// Fallback Arabic text - Suratul Fatiha
+const FALLBACK_ARABIC_TEXT = "بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ الْحَمْدُ لِلَّهِ رَبِّ الْعَالَمِينَ الرَّحْمَٰنِ الرَّحِيمِ مَالِكِ يَوْمِ الدِّينِ إِيَّاكَ نَعْبُدُ وَإِيَّاكَ نَسْتَعِينُ اهْدِنَا الصِّرَاطَ الْمُسْتَقِيمَ صِرَاطَ الَّذِينَ أَنْعَمْتَ عَلَيْهِمْ غَيْرِ الْمَغْضُوبِ عَلَيْهِمْ وَلَا الضَّالِّينَ";
+const FALLBACK_TITLE = "Suratul Fatiha (الفاتحة)";
+const FALLBACK_VIDEO = {
+  id: 'fallback',
+  title: FALLBACK_TITLE,
+  arabic_text: FALLBACK_ARABIC_TEXT,
+  video_url: ''
+};
+
 const Recite = () => {
   const [videos, setVideos] = useState<Video[]>([]);
   const [selectedVideo, setSelectedVideo] = useState<Video | null>(null);
@@ -72,10 +82,16 @@ const Recite = () => {
       .select("id, title, arabic_text, video_url")
       .order("created_at", { ascending: false });
 
-    if (data) {
+    if (data && data.length > 0) {
       setVideos(data);
-      if (data.length > 0 && !selectedVideo) {
+      if (!selectedVideo) {
         setSelectedVideo(data[0]);
+      }
+    } else {
+      // No videos available, use fallback
+      setVideos([]);
+      if (!selectedVideo) {
+        setSelectedVideo(FALLBACK_VIDEO);
       }
     }
     setIsLoading(false);
@@ -230,7 +246,7 @@ const Recite = () => {
       setAnalysisResult(data);
 
       // Save recitation result
-      if (user && selectedVideo) {
+      if (user && selectedVideo && selectedVideo.id !== 'fallback') {
         await supabase.from("recitations").insert({
           user_id: user.id,
           video_id: selectedVideo.id,
@@ -342,8 +358,12 @@ const Recite = () => {
               <Select
                 value={selectedVideo?.id}
                 onValueChange={(value) => {
-                  const video = videos.find(v => v.id === value);
-                  setSelectedVideo(video || null);
+                  if (value === 'fallback') {
+                    setSelectedVideo(FALLBACK_VIDEO);
+                  } else {
+                    const video = videos.find(v => v.id === value);
+                    setSelectedVideo(video || FALLBACK_VIDEO);
+                  }
                   resetRecitation();
                 }}
               >
@@ -351,11 +371,21 @@ const Recite = () => {
                   <SelectValue placeholder="Select a Surah to recite" />
                 </SelectTrigger>
                 <SelectContent>
+                  {videos.length === 0 && (
+                    <SelectItem value="fallback">
+                      {FALLBACK_TITLE} (Default Practice)
+                    </SelectItem>
+                  )}
                   {videos.map((video) => (
                     <SelectItem key={video.id} value={video.id}>
                       {video.title}
                     </SelectItem>
                   ))}
+                  {videos.length > 0 && (
+                    <SelectItem value="fallback">
+                      {FALLBACK_TITLE} (Practice)
+                    </SelectItem>
+                  )}
                 </SelectContent>
               </Select>
             </CardHeader>
@@ -365,14 +395,22 @@ const Recite = () => {
                 <div className="p-6 md:p-8" dir="rtl">
                   {selectedVideo ? (
                     <div className="space-y-4">
+                      {/* Title indicator */}
+                      <div className="text-center pb-2" dir="ltr">
+                        <p className="text-xs text-muted-foreground">
+                          {selectedVideo.id === 'fallback' ? "Default Practice" : "Selected Surah"}
+                        </p>
+                        <p className="text-sm font-medium text-foreground">
+                          {selectedVideo.title}
+                        </p>
+                      </div>
+
                       {/* Bismillah Header */}
-                      {selectedVideo.arabic_text.includes("بِسْمِ") && (
-                        <div className="text-center pb-4 mb-4 border-b border-border/50">
-                          <span className="font-arabic text-2xl md:text-3xl text-primary font-bold">
-                            بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
-                          </span>
-                        </div>
-                      )}
+                      <div className="text-center pb-4 mb-4 border-b border-border/50">
+                        <span className="font-arabic text-2xl md:text-3xl text-primary font-bold">
+                          بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
+                        </span>
+                      </div>
                       
                       {/* Main Arabic Text */}
                       <div className="font-arabic text-2xl md:text-3xl lg:text-4xl leading-[2.5] text-foreground text-center">
@@ -383,9 +421,8 @@ const Recite = () => {
                         ))}
                       </div>
                       
-                      {/* Title */}
+                      {/* Word count */}
                       <div className="text-center pt-4 mt-4 border-t border-border/50" dir="ltr">
-                        <p className="text-sm text-muted-foreground">{selectedVideo.title}</p>
                         <p className="text-xs text-muted-foreground/60 mt-1">
                           {selectedVideo.arabic_text.split(/\s+/).length} words
                         </p>
@@ -393,7 +430,7 @@ const Recite = () => {
                     </div>
                   ) : (
                     <div className="flex items-center justify-center min-h-[200px]">
-                      <p className="text-muted-foreground text-center">Select a surah to practice</p>
+                      <p className="text-muted-foreground text-center">Loading...</p>
                     </div>
                   )}
                 </div>

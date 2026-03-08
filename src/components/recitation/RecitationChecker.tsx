@@ -18,6 +18,10 @@ interface RecitationCheckerProps {
   onRecordingComplete?: (blob: Blob) => void;
 }
 
+// Fallback Arabic text - Suratul Fatiha
+const FALLBACK_ARABIC_TEXT = "بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ الْحَمْدُ لِلَّهِ رَبِّ الْعَالَمِينَ الرَّحْمَٰنِ الرَّحِيمِ مَالِكِ يَوْمِ الدِّينِ إِيَّاكَ نَعْبُدُ وَإِيَّاكَ نَسْتَعِينُ اهْدِنَا الصِّرَاطَ الْمُسْتَقِيمَ صِرَاطَ الَّذِينَ أَنْعَمْتَ عَلَيْهِمْ غَيْرِ الْمَغْضُوبِ عَلَيْهِمْ وَلَا الضَّالِّينَ";
+const FALLBACK_TITLE = "Suratul Fatiha (الفاتحة)";
+
 // Parse Arabic text into words with proper formatting
 const parseArabicText = (text: string): RecitationWord[] => {
   if (!text) return [];
@@ -87,10 +91,9 @@ const RecitationChecker = ({ arabicText, onComplete, onRecordingComplete }: Reci
 
   // Parse Arabic text when it changes
   useEffect(() => {
-    if (arabicText) {
-      setWords(parseArabicText(arabicText));
-      resetRecitation();
-    }
+    const textToUse = arabicText || FALLBACK_ARABIC_TEXT;
+    setWords(parseArabicText(textToUse));
+    resetRecitation();
   }, [arabicText]);
 
   // Auto-scroll to current word
@@ -103,7 +106,7 @@ const RecitationChecker = ({ arabicText, onComplete, onRecordingComplete }: Reci
     }
   }, [currentWordIndex]);
 
-  const verses = useMemo(() => formatVerses(arabicText), [arabicText]);
+  const verses = useMemo(() => formatVerses(arabicText || FALLBACK_ARABIC_TEXT), [arabicText]);
 
   const startRecording = async () => {
     try {
@@ -151,7 +154,7 @@ const RecitationChecker = ({ arabicText, onComplete, onRecordingComplete }: Reci
   // Simulate AI word checking
   const simulateWordChecking = () => {
     let index = 0;
-    const wordList = words.length > 0 ? words : parseArabicText(arabicText);
+    const wordList = words.length > 0 ? words : parseArabicText(arabicText || FALLBACK_ARABIC_TEXT);
     
     if (wordList.length === 0) return;
 
@@ -198,7 +201,7 @@ const RecitationChecker = ({ arabicText, onComplete, onRecordingComplete }: Reci
   };
 
   const resetRecitation = () => {
-    setWords(parseArabicText(arabicText));
+    setWords(parseArabicText(arabicText || FALLBACK_ARABIC_TEXT));
     setCurrentWordIndex(0);
     setScore(100);
     setMistakes(0);
@@ -254,55 +257,55 @@ const RecitationChecker = ({ arabicText, onComplete, onRecordingComplete }: Reci
         {/* Arabic Text Display with Scroll */}
         <ScrollArea className="flex-1 max-h-[300px] rounded-lg border border-border bg-muted/30">
           <div ref={scrollRef} className="p-4 md:p-6">
-            {arabicText ? (
-              <div className="space-y-4" dir="rtl">
-                {/* Bismillah Header if present */}
-                {arabicText.includes("بِسْمِ") && (
-                  <div className="text-center pb-4 mb-4 border-b border-border/50">
-                    <span className="font-arabic text-2xl md:text-3xl text-primary font-bold">
-                      بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
-                    </span>
-                  </div>
-                )}
-                
-                {/* Word-by-word display with status highlighting */}
-                <div className="font-arabic text-xl md:text-2xl lg:text-3xl leading-[2.5] text-center flex flex-wrap justify-center gap-2">
-                  {words.map((word, index) => (
-                    <span
-                      key={index}
-                      data-word-index={index}
-                      className={cn(
-                        "inline-flex items-center px-2 py-1 rounded-md border transition-all duration-300",
-                        getWordStyle(word.status)
-                      )}
-                    >
-                      {word.text}
-                      {getStatusIcon(word.status)}
-                    </span>
-                  ))}
-                </div>
-
-                {/* Verse numbers display for context */}
-                {verses.length > 1 && (
-                  <div className="mt-6 pt-4 border-t border-border/50 space-y-3">
-                    <p className="text-xs text-muted-foreground text-center mb-2" dir="ltr">
-                      Verses breakdown:
-                    </p>
-                    {verses.map((verse, idx) => (
-                      <p key={idx} className="font-arabic text-lg md:text-xl leading-[2] text-muted-foreground/80 text-center">
-                        <span className="text-primary/60 text-sm">({idx + 1})</span> {verse}
-                      </p>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="flex items-center justify-center h-full min-h-[150px]">
-                <p className="text-muted-foreground text-center">
-                  Select a video to see the Quran text for recitation
+            <div className="space-y-4" dir="rtl">
+              {/* Display title */}
+              <div className="text-center pb-2" dir="ltr">
+                <p className="text-xs text-muted-foreground">
+                  {arabicText ? "Selected Surah" : "Fallback Practice"}
+                </p>
+                <p className="text-sm font-medium text-foreground">
+                  {arabicText ? "Current Selection" : FALLBACK_TITLE}
                 </p>
               </div>
-            )}
+
+              {/* Bismillah Header */}
+              <div className="text-center pb-4 mb-4 border-b border-border/50">
+                <span className="font-arabic text-2xl md:text-3xl text-primary font-bold">
+                  بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
+                </span>
+              </div>
+              
+              {/* Word-by-word display with status highlighting */}
+              <div className="font-arabic text-xl md:text-2xl lg:text-3xl leading-[2.5] text-center flex flex-wrap justify-center gap-2">
+                {words.map((word, index) => (
+                  <span
+                    key={index}
+                    data-word-index={index}
+                    className={cn(
+                      "inline-flex items-center px-2 py-1 rounded-md border transition-all duration-300",
+                      getWordStyle(word.status)
+                    )}
+                  >
+                    {word.text}
+                    {getStatusIcon(word.status)}
+                  </span>
+                ))}
+              </div>
+
+              {/* Verse numbers display for context */}
+              {verses.length > 1 && (
+                <div className="mt-6 pt-4 border-t border-border/50 space-y-3">
+                  <p className="text-xs text-muted-foreground text-center mb-2" dir="ltr">
+                    Verses breakdown:
+                  </p>
+                  {verses.map((verse, idx) => (
+                    <p key={idx} className="font-arabic text-lg md:text-xl leading-[2] text-muted-foreground/80 text-center">
+                      <span className="text-primary/60 text-sm">({idx + 1})</span> {verse}
+                    </p>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </ScrollArea>
 
@@ -326,7 +329,7 @@ const RecitationChecker = ({ arabicText, onComplete, onRecordingComplete }: Reci
                 onClick={isRecording ? stopRecording : startRecording}
                 className="flex-1"
                 variant={isRecording ? "destructive" : "default"}
-                disabled={!arabicText}
+                disabled={!arabicText && !FALLBACK_ARABIC_TEXT}
               >
                 {isRecording ? (
                   <>
@@ -340,7 +343,7 @@ const RecitationChecker = ({ arabicText, onComplete, onRecordingComplete }: Reci
                   </>
                 )}
               </Button>
-              <Button variant="outline" size="icon" disabled={!arabicText}>
+              <Button variant="outline" size="icon" disabled={!arabicText && !FALLBACK_ARABIC_TEXT}>
                 <Volume2 className="w-4 h-4" />
               </Button>
             </>
