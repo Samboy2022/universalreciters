@@ -294,6 +294,98 @@ export type Database = {
           },
         ]
       }
+      stream_likes: {
+        Row: {
+          created_at: string | null
+          id: string
+          stream_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          stream_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          stream_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stream_likes_stream_id_fkey"
+            columns: ["stream_id"]
+            isOneToOne: false
+            referencedRelation: "streams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stream_likes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      streams: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          duration: number | null
+          id: string
+          is_public: boolean | null
+          likes: number | null
+          thumbnail_url: string | null
+          title: string
+          type: string
+          updated_at: string | null
+          user_id: string
+          video_url: string
+          views: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          duration?: number | null
+          id?: string
+          is_public?: boolean | null
+          likes?: number | null
+          thumbnail_url?: string | null
+          title: string
+          type?: string
+          updated_at?: string | null
+          user_id: string
+          video_url: string
+          views?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          duration?: number | null
+          id?: string
+          is_public?: boolean | null
+          likes?: number | null
+          thumbnail_url?: string | null
+          title?: string
+          type?: string
+          updated_at?: string | null
+          user_id?: string
+          video_url?: string
+          views?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "streams_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       transactions: {
         Row: {
           amount: number
