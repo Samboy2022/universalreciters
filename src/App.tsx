@@ -87,6 +87,11 @@ const App = () => (
                 <Chat />
               </ProtectedRoute>
             } />
+            <Route path="/dashboard/settings" element={
+              <ProtectedRoute>
+                <Settings />
+              </ProtectedRoute>
+            } />
             
             {/* Admin routes */}
             <Route path="/admin" element={
