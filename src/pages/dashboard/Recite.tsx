@@ -28,6 +28,7 @@ interface Video {
   title: string;
   arabic_text: string;
   video_url: string;
+  unlock_fee: number | null;
 }
 
 interface WordResult {
