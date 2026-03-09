@@ -538,6 +538,11 @@ const Recite = () => {
                   )}
                 </div>
               </ScrollArea>
+              )}
+
+              {/* Only show recording controls when video is unlocked */}
+              {selectedVideo && isVideoUnlocked(selectedVideo) && (
+              <>
 
               {/* Transcribed Text */}
               {transcribedText && (
