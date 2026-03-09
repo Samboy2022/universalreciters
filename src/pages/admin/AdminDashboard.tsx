@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import AdminLayout from "@/components/layout/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
-import { Users, Video, Key, CreditCard, TrendingUp, Activity } from "lucide-react";
+import { Users, Video, Key, CreditCard, TrendingUp, Activity, WalletIcon, Star } from "lucide-react";
 
 interface Stats {
   totalUsers: number;
@@ -12,6 +12,9 @@ interface Stats {
   totalPins: number;
   redeemedPins: number;
   totalTransactions: number;
+  totalRevenue: number;
+  totalUserBalance: number;
+  totalPointsBalance: number;
 }
 
 const AdminDashboard = () => {
@@ -23,39 +26,22 @@ const AdminDashboard = () => {
     totalPins: 0,
     redeemedPins: 0,
     totalTransactions: 0,
+    totalRevenue: 0,
+    totalUserBalance: 0,
+    totalPointsBalance: 0,
   });
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const [
-          { count: totalUsers },
-          { count: activeUsers },
-          { count: totalVideos },
-          { count: totalRecitations },
-          { count: totalPins },
-          { count: redeemedPins },
-          { count: totalTransactions },
-        ] = await Promise.all([
-          supabase.from("profiles").select("*", { count: "exact", head: true }),
-          supabase.from("profiles").select("*", { count: "exact", head: true }).eq("is_active", true),
-          supabase.from("videos").select("*", { count: "exact", head: true }),
-          supabase.from("recitations").select("*", { count: "exact", head: true }),
-          supabase.from("redemption_pins").select("*", { count: "exact", head: true }),
-          supabase.from("redemption_pins").select("*", { count: "exact", head: true }).eq("is_redeemed", true),
-          supabase.from("transactions").select("*", { count: "exact", head: true }),
-        ]);
+        const { data, error } = await supabase.rpc("get_admin_stats");
 
-        setStats({
-          totalUsers: totalUsers || 0,
-          activeUsers: activeUsers || 0,
-          totalVideos: totalVideos || 0,
-          totalRecitations: totalRecitations || 0,
-          totalPins: totalPins || 0,
-          redeemedPins: redeemedPins || 0,
-          totalTransactions: totalTransactions || 0,
-        });
+        if (error) throw error;
+
+        if (data) {
+          setStats(data as Stats);
+        }
       } catch (error) {
         console.error("Error fetching stats:", error);
       } finally {
@@ -106,6 +92,30 @@ const AdminDashboard = () => {
       icon: CreditCard,
       color: "text-destructive",
       bgColor: "bg-destructive/10",
+    },
+    {
+      title: "Admin Revenue",
+      value: `₦${stats.totalRevenue.toLocaleString()}`,
+      subtitle: "From unlocks",
+      icon: TrendingUp,
+      color: "text-success",
+      bgColor: "bg-success/10",
+    },
+    {
+      title: "User Balances",
+      value: `₦${stats.totalUserBalance.toLocaleString()}`,
+      subtitle: "Total held",
+      icon: WalletIcon,
+      color: "text-primary",
+      bgColor: "bg-primary/10",
+    },
+    {
+      title: "Total Points",
+      value: stats.totalPointsBalance.toLocaleString(),
+      subtitle: "Awarded points",
+      icon: Star,
+      color: "text-warning",
+      bgColor: "bg-warning/10",
     },
   ];
 
