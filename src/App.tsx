@@ -42,6 +42,7 @@ const App = () => (
       <TooltipProvider>
         <Toaster />
         <Sonner />
+        <SeoAndThemeManager />
         <BrowserRouter>
           <Routes>
             {/* Public routes */}
