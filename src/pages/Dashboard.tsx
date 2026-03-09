@@ -28,7 +28,7 @@ const Dashboard = () => {
         {/* Part 2: Recitation & Checking Section */}
         <div className="min-h-[400px]">
           <RecitationChecker
-            arabicText={selectedVideo?.arabicText || ""}
+            arabicText={selectedVideo?.arabic_text || ""}
             onComplete={handleRecitationComplete}
           />
         </div>

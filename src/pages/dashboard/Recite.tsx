@@ -568,8 +568,15 @@ const Recite = () => {
                     className="w-12 h-12 rounded-full"
                     onClick={() => {
                       if (selectedVideo) {
-                        const audio = new Audio(selectedVideo.video_url);
-                        audio.play();
+                        if (selectedVideo.video_url.includes("youtube.com") || selectedVideo.video_url.includes("youtu.be")) {
+                          const videoId = selectedVideo.video_url.includes("v=")
+                            ? selectedVideo.video_url.split("v=")[1].split("&")[0]
+                            : selectedVideo.video_url.split("youtu.be/")[1].split("?")[0];
+                          window.open(`https://www.youtube.com/watch?v=${videoId}`, '_blank');
+                        } else {
+                          const audio = new Audio(selectedVideo.video_url);
+                          audio.play();
+                        }
                       }
                     }}
                     disabled={!selectedVideo}

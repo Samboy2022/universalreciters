@@ -1,9 +1,11 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Play, Lock, Clock, Eye, CheckCircle, Loader2 } from "lucide-react";
+import { Play, Lock, Clock, Eye, CheckCircle, Loader2, Unlock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
 
 interface VideoItem {
   id: string;
@@ -25,7 +27,29 @@ const VideoPlayer = ({ onSelectVideo }: VideoPlayerProps) => {
   const [selectedVideo, setSelectedVideo] = useState<VideoItem | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [loading, setLoading] = useState(true);
-  const { profile } = useAuth();
+  const [unlockedVideoIds, setUnlockedVideoIds] = useState<Set<string>>(new Set());
+  const [isUnlocking, setIsUnlocking] = useState(false);
+  const { user, profile, refreshProfile } = useAuth();
+  const { toast } = useToast();
+
+  const fetchUnlockedVideos = async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from("transactions")
+      .select("description")
+      .eq("user_id", user.id)
+      .eq("category", "video_unlock")
+      .eq("status", "completed");
+
+    if (data) {
+      const ids = new Set<string>();
+      data.forEach((tx) => {
+        const match = tx.description?.match(/Unlocked video: (.+)/);
+        if (match) ids.add(match[1]);
+      });
+      setUnlockedVideoIds(ids);
+    }
+  };
 
   useEffect(() => {
     const fetchVideos = async () => {
@@ -43,16 +67,86 @@ const VideoPlayer = ({ onSelectVideo }: VideoPlayerProps) => {
       setLoading(false);
     };
     fetchVideos();
-  }, []);
+    fetchUnlockedVideos();
+  }, [user]);
 
-  const isUnlocked = (video: VideoItem) =>
-    video.unlock_fee === 0 || (profile?.money_balance || 0) >= video.unlock_fee;
+  const isUnlocked = (video: VideoItem) => {
+    if (!video.unlock_fee || video.unlock_fee === 0) return true;
+    return unlockedVideoIds.has(video.id);
+  };
 
   const handleVideoSelect = (video: VideoItem) => {
-    if (!isUnlocked(video)) return;
+    if (!isUnlocked(video)) {
+      toast({
+        title: "Video Locked",
+        description: "Please unlock this surah to watch and practice.",
+        variant: "destructive",
+      });
+      return;
+    }
     setSelectedVideo(video);
     onSelectVideo(video);
     setIsPlaying(false);
+  };
+
+  const handleUnlockVideo = async (video: VideoItem) => {
+    if (!user) {
+      toast({
+        title: "Login Required",
+        description: "Please login to unlock videos.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setIsUnlocking(true);
+    try {
+      const { data, error } = await supabase.rpc("unlock_video", {
+        _user_id: user.id,
+        _video_id: video.id,
+      });
+
+      if (error) throw error;
+
+      const result = data as { success: boolean; error?: string; fee?: number; required?: number; balance?: number; already_unlocked?: boolean };
+
+      if (!result.success) {
+        if (result.error === 'Insufficient balance') {
+          toast({
+            title: "Insufficient Balance",
+            description: `You need ₦${result.required} but have ₦${Number(result.balance).toLocaleString()}. Fund your wallet first.`,
+            variant: "destructive",
+          });
+        } else {
+          toast({ title: result.error || "Failed to unlock", variant: "destructive" });
+        }
+        return;
+      }
+
+      toast({
+        title: result.fee === 0 || result.already_unlocked ? "Video Ready!" : "Video Unlocked!",
+        description: result.fee && result.fee > 0 ? `₦${result.fee} deducted from your wallet` : "This video is free to access",
+      });
+
+      await fetchUnlockedVideos();
+      if (refreshProfile) refreshProfile();
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    } finally {
+      setIsUnlocking(false);
+    }
+  };
+
+  const getYouTubeEmbedUrl = (url: string) => {
+    if (!url) return "";
+    let videoId = "";
+    if (url.includes("youtube.com/watch?v=")) {
+      videoId = url.split("v=")[1].split("&")[0];
+    } else if (url.includes("youtu.be/")) {
+      videoId = url.split("youtu.be/")[1].split("?")[0];
+    } else if (url.includes("youtube.com/embed/")) {
+      videoId = url.split("embed/")[1].split("?")[0];
+    }
+    return videoId ? `https://www.youtube.com/embed/${videoId}?autoplay=1` : url;
   };
 
   const formatDuration = (seconds: number | null) => {
@@ -82,13 +176,42 @@ const VideoPlayer = ({ onSelectVideo }: VideoPlayerProps) => {
         {/* Video Player */}
         <div className="relative aspect-video bg-muted rounded-lg overflow-hidden">
           {selectedVideo ? (
-            isPlaying ? (
-              <video
-                src={selectedVideo.video_url}
-                controls
-                autoPlay
-                className="w-full h-full object-contain"
-              />
+            !isUnlocked(selectedVideo) ? (
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm p-6 text-center">
+                <Lock className="w-12 h-12 text-muted-foreground mb-4" />
+                <h3 className="text-lg font-bold mb-2">{selectedVideo.title}</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Unlock this surah to watch the recitation and start practicing.
+                </p>
+                <Button
+                  onClick={() => handleUnlockVideo(selectedVideo)}
+                  disabled={isUnlocking}
+                  className="gap-2"
+                >
+                  {isUnlocking ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Unlock className="w-4 h-4" />
+                  )}
+                  Unlock for ₦{selectedVideo.unlock_fee}
+                </Button>
+              </div>
+            ) : isPlaying ? (
+              selectedVideo.video_url.includes("youtube.com") || selectedVideo.video_url.includes("youtu.be") ? (
+                <iframe
+                  src={getYouTubeEmbedUrl(selectedVideo.video_url)}
+                  className="w-full h-full"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+              ) : (
+                <video
+                  src={selectedVideo.video_url}
+                  controls
+                  autoPlay
+                  className="w-full h-full object-contain"
+                />
+              )
             ) : (
               <>
                 <div className="absolute inset-0 flex items-center justify-center bg-primary/5">
