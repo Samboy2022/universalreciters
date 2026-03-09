@@ -491,7 +491,12 @@ const Recite = () => {
                     Unlock for ₦{selectedVideo.unlock_fee}
                   </Button>
                 </div>
-              )}
+
+              {/* Arabic Text Display with Scroll - only when unlocked */}
+              {(!selectedVideo || isVideoUnlocked(selectedVideo)) && (
+              <ScrollArea className="max-h-[350px] rounded-lg border border-border bg-muted/30">
+                <div className="p-6 md:p-8" dir="rtl">
+                  {selectedVideo ? (
                     <div className="space-y-4">
                       {/* Title indicator */}
                       <div className="text-center pb-2" dir="ltr">
