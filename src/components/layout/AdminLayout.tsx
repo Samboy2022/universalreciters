@@ -8,11 +8,15 @@ import {
   Users,
   Key,
   CreditCard,
-  Settings,
   LogOut,
   Menu,
   Home,
   ChevronLeft,
+  BookOpen,
+  BookText,
+  Trophy,
+  GraduationCap,
+  Wallet,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
@@ -23,7 +27,12 @@ interface AdminLayoutProps {
 
 const navItems = [
   { href: "/admin", icon: LayoutDashboard, label: "Overview" },
-  { href: "/admin/videos", icon: Video, label: "Videos" },
+  { href: "/admin/surahs", icon: BookOpen, label: "Recitation Videos" },
+  { href: "/admin/surah-texts", icon: BookText, label: "Surah Texts" },
+  { href: "/admin/rankings", icon: Trophy, label: "Ranking Control" },
+  { href: "/admin/learning", icon: GraduationCap, label: "Learning Materials" },
+  { href: "/admin/wallet", icon: Wallet, label: "Wallet Management" },
+  { href: "/admin/videos", icon: Video, label: "Stream Videos" },
   { href: "/admin/users", icon: Users, label: "Users" },
   { href: "/admin/pins", icon: Key, label: "Redemption PINs" },
   { href: "/admin/payments", icon: CreditCard, label: "Payments" },
