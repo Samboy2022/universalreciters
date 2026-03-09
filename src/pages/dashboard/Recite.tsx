@@ -19,7 +19,10 @@ import {
   Trophy,
   Target,
   Loader2,
-  AlertCircle
+  AlertCircle,
+  Lock,
+  Unlock,
+  WalletIcon
 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
