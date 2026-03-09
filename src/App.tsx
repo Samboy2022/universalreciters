@@ -29,6 +29,7 @@ import AdminSurahTexts from "./pages/admin/AdminSurahTexts";
 import AdminRankings from "./pages/admin/AdminRankings";
 import AdminLearning from "./pages/admin/AdminLearning";
 import AdminWallet from "./pages/admin/AdminWallet";
+import AdminLogin from "./pages/admin/AdminLogin";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
