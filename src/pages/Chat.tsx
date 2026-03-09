@@ -375,11 +375,12 @@ const Chat = () => {
     }
 
     setIsNewChatOpen(false);
-    fetchConversations();
+    await fetchConversations();
     setSelectedConversation({
       ...conv,
       otherUser: targetUser,
     });
+    setIsMobileViewingChat(true);
   };
 
   const filteredUsers = allUsers.filter((u) =>

@@ -95,7 +95,7 @@ const AdminDashboard = () => {
     },
     {
       title: "Admin Revenue",
-      value: `₦${stats.totalRevenue.toLocaleString()}`,
+      value: `₦${(stats.totalRevenue || 0).toLocaleString()}`,
       subtitle: "From unlocks",
       icon: TrendingUp,
       color: "text-success",
@@ -103,7 +103,7 @@ const AdminDashboard = () => {
     },
     {
       title: "User Balances",
-      value: `₦${stats.totalUserBalance.toLocaleString()}`,
+      value: `₦${(stats.totalUserBalance || 0).toLocaleString()}`,
       subtitle: "Total held",
       icon: WalletIcon,
       color: "text-primary",
@@ -111,7 +111,7 @@ const AdminDashboard = () => {
     },
     {
       title: "Total Points",
-      value: stats.totalPointsBalance.toLocaleString(),
+      value: (stats.totalPointsBalance || 0).toLocaleString(),
       subtitle: "Awarded points",
       icon: Star,
       color: "text-warning",

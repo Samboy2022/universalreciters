@@ -42,3 +42,18 @@ BEGIN
   );
 END;
 $$;
+
+CREATE OR REPLACE FUNCTION public.admin_add_balance(_user_id uuid, _amount numeric)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+  UPDATE public.profiles
+  SET money_balance = COALESCE(money_balance, 0) + _amount
+  WHERE id = _user_id;
+
+  INSERT INTO public.transactions (user_id, amount, type, category, description, status)
+  VALUES (_user_id, _amount, 'credit', 'admin_deposit', 'Admin balance deposit', 'completed');
+END;
+$$;
