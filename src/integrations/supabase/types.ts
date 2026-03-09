@@ -756,6 +756,10 @@ export type Database = {
         Args: { _pin_code: string; _user_id: string }
         Returns: Json
       }
+      unlock_video: {
+        Args: { _user_id: string; _video_id: string }
+        Returns: Json
+      }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
