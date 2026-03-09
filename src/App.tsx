@@ -29,6 +29,7 @@ import AdminSurahTexts from "./pages/admin/AdminSurahTexts";
 import AdminRankings from "./pages/admin/AdminRankings";
 import AdminLearning from "./pages/admin/AdminLearning";
 import AdminWallet from "./pages/admin/AdminWallet";
+import AdminCMS from "./pages/admin/AdminCMS";
 import AdminLogin from "./pages/admin/AdminLogin";
 import NotFound from "./pages/NotFound";
 
@@ -149,6 +150,11 @@ const App = () => (
             <Route path="/admin/payments" element={
               <ProtectedRoute requireAdmin>
                 <AdminPayments />
+              </ProtectedRoute>
+            } />
+            <Route path="/admin/cms" element={
+              <ProtectedRoute requireAdmin>
+                <AdminCMS />
               </ProtectedRoute>
             } />
             

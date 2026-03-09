@@ -17,6 +17,7 @@ import {
   Trophy,
   GraduationCap,
   Wallet,
+  FileText,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
@@ -27,6 +28,7 @@ interface AdminLayoutProps {
 
 const navItems = [
   { href: "/admin", icon: LayoutDashboard, label: "Overview" },
+  { href: "/admin/cms", icon: FileText, label: "CMS / Content" },
   { href: "/admin/surahs", icon: BookOpen, label: "Recitation Videos" },
   { href: "/admin/surah-texts", icon: BookText, label: "Surah Texts" },
   { href: "/admin/rankings", icon: Trophy, label: "Ranking Control" },
