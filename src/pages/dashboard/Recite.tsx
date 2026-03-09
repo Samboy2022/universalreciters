@@ -451,7 +451,13 @@ const Recite = () => {
                   )}
                   {videos.map((video) => (
                     <SelectItem key={video.id} value={video.id}>
-                      {video.title}
+                      <span className="flex items-center gap-2">
+                        {!isVideoUnlocked(video) && <Lock className="w-3 h-3 text-muted-foreground" />}
+                        {video.title}
+                        {video.unlock_fee && video.unlock_fee > 0 && !isVideoUnlocked(video) && (
+                          <span className="text-xs text-muted-foreground">(₦{video.unlock_fee})</span>
+                        )}
+                      </span>
                     </SelectItem>
                   ))}
                   {videos.length > 0 && (
@@ -463,10 +469,29 @@ const Recite = () => {
               </Select>
             </CardHeader>
             <CardContent className="space-y-6">
-              {/* Arabic Text Display with Scroll */}
-              <ScrollArea className="max-h-[350px] rounded-lg border border-border bg-muted/30">
-                <div className="p-6 md:p-8" dir="rtl">
-                  {selectedVideo ? (
+              {/* Unlock Gate */}
+              {selectedVideo && !isVideoUnlocked(selectedVideo) && (
+                <div className="text-center p-6 bg-muted/50 rounded-lg border border-border space-y-4">
+                  <Lock className="w-12 h-12 mx-auto text-muted-foreground" />
+                  <div>
+                    <h3 className="text-lg font-semibold text-foreground">Video Locked</h3>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Unlock <strong>{selectedVideo.title}</strong> for ₦{selectedVideo.unlock_fee}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Your balance: ₦{Number(profile?.money_balance || 0).toLocaleString()}
+                    </p>
+                  </div>
+                  <Button onClick={() => handleUnlockVideo(selectedVideo)} disabled={isUnlocking}>
+                    {isUnlocking ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <Unlock className="w-4 h-4 mr-2" />
+                    )}
+                    Unlock for ₦{selectedVideo.unlock_fee}
+                  </Button>
+                </div>
+              )}
                     <div className="space-y-4">
                       {/* Title indicator */}
                       <div className="text-center pb-2" dir="ltr">
