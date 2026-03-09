@@ -665,7 +665,9 @@ const Recite = () => {
                     </div>
                   </div>
                 )}
-              </div>
+               </div>
+              </>
+              )}
             </CardContent>
           </Card>
 
