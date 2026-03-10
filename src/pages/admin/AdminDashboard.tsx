@@ -52,7 +52,7 @@ const AdminDashboard = () => {
 
       if (data) {
         console.log("Stats loaded:", data);
-        setStats(data as Stats);
+        setStats(data as unknown as Stats);
         toast({
           title: "Stats Refreshed",
           description: "Dashboard data updated successfully",
