@@ -745,6 +745,11 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_add_balance: {
+        Args: { _amount: number; _user_id: string }
+        Returns: Json
+      }
+      get_admin_stats: { Args: never; Returns: Json }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
