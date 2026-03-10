@@ -749,6 +749,10 @@ export type Database = {
         Args: { _amount: number; _user_id: string }
         Returns: Json
       }
+      admin_deduct_balance: {
+        Args: { _amount: number; _user_id: string }
+        Returns: Json
+      }
       get_admin_stats: { Args: never; Returns: Json }
       has_role: {
         Args: {

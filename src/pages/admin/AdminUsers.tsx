@@ -174,10 +174,33 @@ const AdminUsers = () => {
         _user_id: selectedUser.id,
         _amount: walletAmount,
       });
-
       if (error) throw error;
-
       toast({ title: `Added ₦${walletAmount.toLocaleString()} to user wallet` });
+      setWalletAmount(0);
+      setIsWalletOpen(false);
+      fetchUsers();
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleDeductBalance = async () => {
+    if (!selectedUser || walletAmount <= 0) return;
+    setIsProcessing(true);
+    try {
+      const { data, error } = await supabase.rpc("admin_deduct_balance" as any, {
+        _user_id: selectedUser.id,
+        _amount: walletAmount,
+      });
+      if (error) throw error;
+      const result = data as any;
+      if (result && !result.success) {
+        toast({ title: "Error", description: result.error, variant: "destructive" });
+        return;
+      }
+      toast({ title: `Deducted ₦${walletAmount.toLocaleString()} from user wallet` });
       setWalletAmount(0);
       setIsWalletOpen(false);
       fetchUsers();
@@ -579,7 +602,7 @@ const AdminUsers = () => {
                 </div>
 
                 <div className="space-y-3">
-                  <Label htmlFor="wallet-amount">Add Balance (₦)</Label>
+                  <Label htmlFor="wallet-amount">Amount (₦)</Label>
                   <div className="flex gap-2">
                     <Input
                       id="wallet-amount"
@@ -588,11 +611,16 @@ const AdminUsers = () => {
                       value={walletAmount}
                       onChange={(e) => setWalletAmount(parseInt(e.target.value) || 0)}
                     />
-                    <Button onClick={handleAddBalance} disabled={isProcessing || walletAmount <= 0}>
-                      {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : "Add"}
+                  </div>
+                  <div className="flex gap-2">
+                    <Button className="flex-1" onClick={handleAddBalance} disabled={isProcessing || walletAmount <= 0}>
+                      {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : "Top Up"}
+                    </Button>
+                    <Button className="flex-1" variant="destructive" onClick={handleDeductBalance} disabled={isProcessing || walletAmount <= 0}>
+                      {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : "Deduct"}
                     </Button>
                   </div>
-                  <p className="text-[10px] text-muted-foreground">This will credit the user's account and record a transaction.</p>
+                  <p className="text-[10px] text-muted-foreground">Top up credits the user's account. Deduct removes from their balance.</p>
                 </div>
               </div>
             )}
