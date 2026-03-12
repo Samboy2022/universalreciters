@@ -79,9 +79,22 @@ const Streaming = () => {
     }
   };
 
+  const fetchPaidStreams = async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from("stream_views")
+      .select("stream_id")
+      .eq("user_id", user.id);
+
+    if (data) {
+      setPaidStreams(new Set(data.map((v) => v.stream_id)));
+    }
+  };
+
   useEffect(() => {
     fetchStreams();
     fetchLikedStreams();
+    fetchPaidStreams();
 
     const channel = supabase
       .channel("streams-realtime")
