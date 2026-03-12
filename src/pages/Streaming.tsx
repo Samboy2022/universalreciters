@@ -47,8 +47,10 @@ const Streaming = () => {
   const [activeTab, setActiveTab] = useState("all");
   const [playingVideo, setPlayingVideo] = useState<string | null>(null);
   const [likedStreams, setLikedStreams] = useState<Set<string>>(new Set());
+  const [paidStreams, setPaidStreams] = useState<Set<string>>(new Set());
+  const [paying, setPaying] = useState(false);
 
-  const { user } = useAuth();
+  const { user, profile, refreshProfile } = useAuth();
   const { toast } = useToast();
 
   const fetchStreams = async () => {
@@ -77,9 +79,22 @@ const Streaming = () => {
     }
   };
 
+  const fetchPaidStreams = async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from("stream_views")
+      .select("stream_id")
+      .eq("user_id", user.id);
+
+    if (data) {
+      setPaidStreams(new Set(data.map((v) => v.stream_id)));
+    }
+  };
+
   useEffect(() => {
     fetchStreams();
     fetchLikedStreams();
+    fetchPaidStreams();
 
     const channel = supabase
       .channel("streams-realtime")
@@ -134,13 +149,61 @@ const Streaming = () => {
   };
 
   const handleView = async (streamId: string) => {
-    setPlayingVideo(streamId);
-    const stream = streams.find((s) => s.id === streamId);
-    if (stream) {
-      await supabase
-        .from("streams")
-        .update({ views: (stream.views || 0) + 1 })
-        .eq("id", streamId);
+    if (!user) {
+      toast({ title: "Login Required", description: "Please login to watch videos.", variant: "destructive" });
+      return;
+    }
+
+    // If already paid, just play
+    if (paidStreams.has(streamId)) {
+      setPlayingVideo(streamId);
+      return;
+    }
+
+    setPaying(true);
+    try {
+      const { data, error } = await supabase.rpc("pay_stream_view", {
+        _user_id: user.id,
+        _stream_id: streamId,
+      });
+
+      if (error) throw error;
+
+      const result = data as { success: boolean; error?: string; already_paid?: boolean; fee?: number; required?: number; balance?: number };
+
+      if (!result.success) {
+        if (result.error === 'Insufficient balance') {
+          toast({
+            title: "Insufficient Balance",
+            description: `You need ₦${result.required} but have ₦${Number(result.balance).toLocaleString()}. Fund your wallet first.`,
+            variant: "destructive",
+          });
+        } else {
+          toast({ title: result.error || "Payment failed", variant: "destructive" });
+        }
+        return;
+      }
+
+      if (!result.already_paid && result.fee) {
+        toast({ title: "₦3 Deducted", description: "₦3 has been deducted to watch this video." });
+      }
+
+      setPaidStreams((prev) => new Set(prev).add(streamId));
+      setPlayingVideo(streamId);
+      if (refreshProfile) refreshProfile();
+
+      // Update view count
+      const stream = streams.find((s) => s.id === streamId);
+      if (stream) {
+        await supabase
+          .from("streams")
+          .update({ views: (stream.views || 0) + 1 })
+          .eq("id", streamId);
+      }
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    } finally {
+      setPaying(false);
     }
   };
 
@@ -232,12 +295,22 @@ const Streaming = () => {
                       <div className="absolute bottom-2 right-2 bg-foreground/80 text-background text-xs px-2 py-0.5 rounded">
                         {formatDuration(stream.duration || 0)}
                       </div>
+                      {!paidStreams.has(stream.id) && (
+                        <div className="absolute top-2 left-2 bg-destructive text-destructive-foreground text-xs px-2 py-1 rounded font-medium">
+                          ₦3 to watch
+                        </div>
+                      )}
                       <button
                         onClick={() => handleView(stream.id)}
+                        disabled={paying}
                         className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
                       >
                         <div className="w-14 h-14 rounded-full bg-primary flex items-center justify-center shadow-glow">
-                          <Play className="w-6 h-6 text-primary-foreground ml-1" />
+                          {paying ? (
+                            <Loader2 className="w-6 h-6 text-primary-foreground animate-spin" />
+                          ) : (
+                            <Play className="w-6 h-6 text-primary-foreground ml-1" />
+                          )}
                         </div>
                       </button>
                     </>
