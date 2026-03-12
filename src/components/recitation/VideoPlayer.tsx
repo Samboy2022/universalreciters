@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface VideoItem {
   id: string;
@@ -75,27 +76,18 @@ const VideoPlayer = ({ onSelectVideo }: VideoPlayerProps) => {
     return unlockedVideoIds.has(video.id);
   };
 
-  const handleVideoSelect = (video: VideoItem) => {
-    if (!isUnlocked(video)) {
-      toast({
-        title: "Video Locked",
-        description: "Please unlock this surah to watch and practice.",
-        variant: "destructive",
-      });
-      return;
+  const handleVideoChange = (videoId: string) => {
+    const video = videos.find(v => v.id === videoId);
+    if (video) {
+      setSelectedVideo(video);
+      onSelectVideo(video);
+      setIsPlaying(false);
     }
-    setSelectedVideo(video);
-    onSelectVideo(video);
-    setIsPlaying(false);
   };
 
   const handleUnlockVideo = async (video: VideoItem) => {
     if (!user) {
-      toast({
-        title: "Login Required",
-        description: "Please login to unlock videos.",
-        variant: "destructive",
-      });
+      toast({ title: "Login Required", description: "Please login to unlock videos.", variant: "destructive" });
       return;
     }
     setIsUnlocking(true);
@@ -149,13 +141,6 @@ const VideoPlayer = ({ onSelectVideo }: VideoPlayerProps) => {
     return videoId ? `https://www.youtube.com/embed/${videoId}?autoplay=1` : url;
   };
 
-  const formatDuration = (seconds: number | null) => {
-    if (!seconds) return "--:--";
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
-    return `${m}:${s.toString().padStart(2, "0")}`;
-  };
-
   if (loading) {
     return (
       <Card className="h-full flex items-center justify-center">
@@ -171,32 +156,69 @@ const VideoPlayer = ({ onSelectVideo }: VideoPlayerProps) => {
           <Play className="w-5 h-5 text-primary" />
           Recitation Videos
         </CardTitle>
+        {/* Surah Selection Dropdown */}
+        <Select
+          value={selectedVideo?.id}
+          onValueChange={handleVideoChange}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Select a Surah to watch" />
+          </SelectTrigger>
+          <SelectContent>
+            {videos.length === 0 && (
+              <SelectItem value="none" disabled>
+                No videos available
+              </SelectItem>
+            )}
+            {videos.map((video) => {
+              const unlocked = isUnlocked(video);
+              return (
+                <SelectItem key={video.id} value={video.id}>
+                  <span className="flex items-center gap-2">
+                    {!unlocked && <Lock className="w-3 h-3 text-muted-foreground" />}
+                    {unlocked && <CheckCircle className="w-3 h-3 text-primary" />}
+                    {video.title}
+                    {!unlocked && video.unlock_fee > 0 && (
+                      <span className="text-xs text-muted-foreground">(₦{video.unlock_fee})</span>
+                    )}
+                  </span>
+                </SelectItem>
+              );
+            })}
+          </SelectContent>
+        </Select>
       </CardHeader>
       <CardContent className="flex-1 flex flex-col gap-4">
-        {/* Video Player */}
-        <div className="relative aspect-video bg-muted rounded-lg overflow-hidden">
-          {selectedVideo ? (
-            !isUnlocked(selectedVideo) ? (
-              <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm p-6 text-center">
-                <Lock className="w-12 h-12 text-muted-foreground mb-4" />
-                <h3 className="text-lg font-bold mb-2">{selectedVideo.title}</h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Unlock this surah to watch the recitation and start practicing.
-                </p>
-                <Button
-                  onClick={() => handleUnlockVideo(selectedVideo)}
-                  disabled={isUnlocking}
-                  className="gap-2"
-                >
-                  {isUnlocking ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Unlock className="w-4 h-4" />
-                  )}
-                  Unlock for ₦{selectedVideo.unlock_fee}
-                </Button>
-              </div>
-            ) : isPlaying ? (
+        {/* Unlock Gate */}
+        {selectedVideo && !isUnlocked(selectedVideo) && (
+          <div className="relative aspect-video bg-muted rounded-lg overflow-hidden flex flex-col items-center justify-center p-6 text-center border border-border">
+            <Lock className="w-12 h-12 text-muted-foreground mb-4" />
+            <h3 className="text-lg font-bold mb-2">{selectedVideo.title}</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              Unlock this surah to watch the recitation and start practicing.
+            </p>
+            <Button
+              onClick={() => handleUnlockVideo(selectedVideo)}
+              disabled={isUnlocking}
+              className="gap-2"
+            >
+              {isUnlocking ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Unlock className="w-4 h-4" />
+              )}
+              Unlock for ₦{selectedVideo.unlock_fee}
+            </Button>
+            <p className="text-xs text-muted-foreground mt-3">
+              Balance: ₦{Number(profile?.money_balance || 0).toLocaleString()}
+            </p>
+          </div>
+        )}
+
+        {/* Video Player - only when unlocked */}
+        {selectedVideo && isUnlocked(selectedVideo) && (
+          <div className="relative aspect-video bg-muted rounded-lg overflow-hidden">
+            {isPlaying ? (
               selectedVideo.video_url.includes("youtube.com") || selectedVideo.video_url.includes("youtu.be") ? (
                 <iframe
                   src={getYouTubeEmbedUrl(selectedVideo.video_url)}
@@ -230,71 +252,16 @@ const VideoPlayer = ({ onSelectVideo }: VideoPlayerProps) => {
                   </div>
                 </button>
               </>
-            )
-          ) : (
-            <div className="flex items-center justify-center h-full text-muted-foreground">
-              No videos available yet
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        )}
 
-        {/* Video List */}
-        <div className="flex-1 space-y-2 overflow-y-auto">
-          {videos.length === 0 && (
-            <p className="text-center text-sm text-muted-foreground py-4">
-              No videos uploaded yet. Admin can add videos.
-            </p>
-          )}
-          {videos.map((video) => {
-            const unlocked = isUnlocked(video);
-            return (
-              <button
-                key={video.id}
-                onClick={() => handleVideoSelect(video)}
-                className={`w-full text-left p-3 rounded-lg border transition-all ${
-                  selectedVideo?.id === video.id
-                    ? "border-primary bg-primary/5"
-                    : "border-border hover:border-primary/50 hover:bg-muted/50"
-                } ${!unlocked && "opacity-60"}`}
-              >
-                <div className="flex items-start gap-3">
-                  <div className="w-12 h-12 rounded bg-muted flex items-center justify-center flex-shrink-0">
-                    {unlocked ? (
-                      <Play className="w-5 h-5 text-primary" />
-                    ) : (
-                      <Lock className="w-5 h-5 text-muted-foreground" />
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <h4 className="text-sm font-medium text-foreground truncate">
-                        {video.title}
-                      </h4>
-                      {unlocked && (
-                        <CheckCircle className="w-3 h-3 text-primary flex-shrink-0" />
-                      )}
-                    </div>
-                    <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
-                      <span className="flex items-center gap-1">
-                        <Clock className="w-3 h-3" />
-                        {formatDuration(video.duration)}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Eye className="w-3 h-3" />
-                        {(video.views || 0).toLocaleString()}
-                      </span>
-                    </div>
-                  </div>
-                  {!unlocked && (
-                    <Badge variant="secondary" className="text-xs">
-                      ₦{video.unlock_fee}
-                    </Badge>
-                  )}
-                </div>
-              </button>
-            );
-          })}
-        </div>
+        {/* No video selected */}
+        {!selectedVideo && (
+          <div className="relative aspect-video bg-muted rounded-lg overflow-hidden flex items-center justify-center text-muted-foreground">
+            No videos available yet
+          </div>
+        )}
       </CardContent>
     </Card>
   );
