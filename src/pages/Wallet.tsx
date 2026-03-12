@@ -436,13 +436,33 @@ const Wallet = () => {
           </Card>
 
           <Card>
-            <CardHeader><CardTitle>Fund Wallet</CardTitle></CardHeader>
+            <CardHeader><CardTitle>Fund & Withdraw</CardTitle></CardHeader>
             <CardContent>
-              <Tabs defaultValue="pin">
-                <TabsList className="grid grid-cols-2 w-full">
-                  <TabsTrigger value="pin">Redemption PIN</TabsTrigger>
+              <Tabs defaultValue="paystack">
+                <TabsList className="grid grid-cols-3 w-full">
+                  <TabsTrigger value="paystack">Paystack</TabsTrigger>
+                  <TabsTrigger value="pin">PIN Code</TabsTrigger>
                   <TabsTrigger value="withdraw">Withdraw</TabsTrigger>
                 </TabsList>
+
+                <TabsContent value="paystack" className="space-y-4 mt-4">
+                  <div className="bg-accent/10 rounded-lg p-4 text-sm">
+                    <p className="font-medium text-foreground mb-1">Fund via Paystack</p>
+                    <p className="text-muted-foreground text-xs">Pay with your debit card, bank transfer, or USSD. Funds are added instantly.</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Amount (₦)</Label>
+                    <Input type="number" placeholder="Min ₦500" value={fundAmount} onChange={(e) => setFundAmount(e.target.value)} />
+                    {fundAmount && parseInt(fundAmount) >= 500 && (
+                      <p className="text-sm text-muted-foreground">You'll receive: ₦{parseInt(fundAmount).toLocaleString()}</p>
+                    )}
+                  </div>
+                  <Button className="w-full" onClick={handleFundViaPaystack} disabled={fundingViaPaystack}>
+                    {fundingViaPaystack ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <CreditCard className="w-4 h-4 mr-2" />}
+                    {fundingViaPaystack ? "Processing..." : "Pay with Paystack"}
+                  </Button>
+                </TabsContent>
+
                 <TabsContent value="pin" className="space-y-4 mt-4">
                   <div className="bg-accent/10 rounded-lg p-4 text-sm">
                     <p className="font-medium text-foreground mb-1">How it works:</p>
