@@ -75,6 +75,10 @@ const Wallet = () => {
   const [submittingWithdrawal, setSubmittingWithdrawal] = useState(false);
   const [withdrawalRequests, setWithdrawalRequests] = useState<WithdrawalRequest[]>([]);
 
+  // Paystack funding state
+  const [fundAmount, setFundAmount] = useState("");
+  const [fundingViaPaystack, setFundingViaPaystack] = useState(false);
+
   const fetchTransactions = async () => {
     if (!user) return;
     const { data } = await supabase
