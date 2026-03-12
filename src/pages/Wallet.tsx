@@ -75,6 +75,10 @@ const Wallet = () => {
   const [submittingWithdrawal, setSubmittingWithdrawal] = useState(false);
   const [withdrawalRequests, setWithdrawalRequests] = useState<WithdrawalRequest[]>([]);
 
+  // Paystack funding state
+  const [fundAmount, setFundAmount] = useState("");
+  const [fundingViaPaystack, setFundingViaPaystack] = useState(false);
+
   const fetchTransactions = async () => {
     if (!user) return;
     const { data } = await supabase
@@ -255,6 +259,81 @@ const Wallet = () => {
     }
   };
 
+  const loadPaystackScript = (): Promise<void> => {
+    return new Promise((resolve, reject) => {
+      if ((window as any).PaystackPop) {
+        resolve();
+        return;
+      }
+      const script = document.createElement("script");
+      script.src = "https://js.paystack.co/v2/inline.js";
+      script.onload = () => resolve();
+      script.onerror = () => reject(new Error("Failed to load Paystack"));
+      document.head.appendChild(script);
+    });
+  };
+
+  const handleFundViaPaystack = async () => {
+    const amount = parseInt(fundAmount);
+    if (!amount || amount < 500 || !user) {
+      toast({ title: "Minimum ₦500 required", variant: "destructive" });
+      return;
+    }
+    setFundingViaPaystack(true);
+    try {
+      await loadPaystackScript();
+      const { data: secretData } = await supabase.functions.invoke("get-paystack-key");
+      const publicKey = secretData?.publicKey;
+      if (!publicKey) {
+        toast({ title: "Payment setup error", description: "Could not load payment gateway.", variant: "destructive" });
+        setFundingViaPaystack(false);
+        return;
+      }
+
+      const paystack = new (window as any).PaystackPop();
+      paystack.newTransaction({
+        key: publicKey,
+        email: profile?.email || user.email,
+        amount: amount * 100,
+        currency: "NGN",
+        metadata: {
+          custom_fields: [
+            { display_name: "Purpose", variable_name: "purpose", value: "wallet_funding" },
+            { display_name: "User ID", variable_name: "user_id", value: user.id },
+          ],
+        },
+        onSuccess: async (transaction: any) => {
+          const { data: verifyData } = await supabase.functions.invoke("verify-paystack", {
+            body: { reference: transaction.reference },
+          });
+          if (verifyData?.success) {
+            await supabase.from("profiles").update({
+              money_balance: (profile?.money_balance || 0) + amount,
+            }).eq("id", user.id);
+            await supabase.from("transactions").insert({
+              user_id: user.id, type: "credit", category: "paystack_funding",
+              description: `Wallet funding via Paystack (${transaction.reference})`, amount, status: "completed",
+            });
+            await refreshProfile();
+            fetchTransactions();
+            setFundAmount("");
+            toast({ title: "Wallet funded!", description: `₦${amount.toLocaleString()} added to your balance` });
+          } else {
+            toast({ title: "Payment verification failed", variant: "destructive" });
+          }
+          setFundingViaPaystack(false);
+        },
+        onCancel: () => {
+          toast({ title: "Payment cancelled" });
+          setFundingViaPaystack(false);
+        },
+      });
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+      setFundingViaPaystack(false);
+    }
+  };
+
   const copyReferralLink = () => {
     navigator.clipboard.writeText(
       `${window.location.origin}/register?ref=${profile?.referral_code || ""}`
@@ -357,13 +436,33 @@ const Wallet = () => {
           </Card>
 
           <Card>
-            <CardHeader><CardTitle>Fund Wallet</CardTitle></CardHeader>
+            <CardHeader><CardTitle>Fund & Withdraw</CardTitle></CardHeader>
             <CardContent>
-              <Tabs defaultValue="pin">
-                <TabsList className="grid grid-cols-2 w-full">
-                  <TabsTrigger value="pin">Redemption PIN</TabsTrigger>
+              <Tabs defaultValue="paystack">
+                <TabsList className="grid grid-cols-3 w-full">
+                  <TabsTrigger value="paystack">Paystack</TabsTrigger>
+                  <TabsTrigger value="pin">PIN Code</TabsTrigger>
                   <TabsTrigger value="withdraw">Withdraw</TabsTrigger>
                 </TabsList>
+
+                <TabsContent value="paystack" className="space-y-4 mt-4">
+                  <div className="bg-accent/10 rounded-lg p-4 text-sm">
+                    <p className="font-medium text-foreground mb-1">Fund via Paystack</p>
+                    <p className="text-muted-foreground text-xs">Pay with your debit card, bank transfer, or USSD. Funds are added instantly.</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Amount (₦)</Label>
+                    <Input type="number" placeholder="Min ₦500" value={fundAmount} onChange={(e) => setFundAmount(e.target.value)} />
+                    {fundAmount && parseInt(fundAmount) >= 500 && (
+                      <p className="text-sm text-muted-foreground">You'll receive: ₦{parseInt(fundAmount).toLocaleString()}</p>
+                    )}
+                  </div>
+                  <Button className="w-full" onClick={handleFundViaPaystack} disabled={fundingViaPaystack}>
+                    {fundingViaPaystack ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <CreditCard className="w-4 h-4 mr-2" />}
+                    {fundingViaPaystack ? "Processing..." : "Pay with Paystack"}
+                  </Button>
+                </TabsContent>
+
                 <TabsContent value="pin" className="space-y-4 mt-4">
                   <div className="bg-accent/10 rounded-lg p-4 text-sm">
                     <p className="font-medium text-foreground mb-1">How it works:</p>
