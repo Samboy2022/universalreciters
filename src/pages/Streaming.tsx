@@ -149,13 +149,61 @@ const Streaming = () => {
   };
 
   const handleView = async (streamId: string) => {
-    setPlayingVideo(streamId);
-    const stream = streams.find((s) => s.id === streamId);
-    if (stream) {
-      await supabase
-        .from("streams")
-        .update({ views: (stream.views || 0) + 1 })
-        .eq("id", streamId);
+    if (!user) {
+      toast({ title: "Login Required", description: "Please login to watch videos.", variant: "destructive" });
+      return;
+    }
+
+    // If already paid, just play
+    if (paidStreams.has(streamId)) {
+      setPlayingVideo(streamId);
+      return;
+    }
+
+    setPaying(true);
+    try {
+      const { data, error } = await supabase.rpc("pay_stream_view", {
+        _user_id: user.id,
+        _stream_id: streamId,
+      });
+
+      if (error) throw error;
+
+      const result = data as { success: boolean; error?: string; already_paid?: boolean; fee?: number; required?: number; balance?: number };
+
+      if (!result.success) {
+        if (result.error === 'Insufficient balance') {
+          toast({
+            title: "Insufficient Balance",
+            description: `You need ₦${result.required} but have ₦${Number(result.balance).toLocaleString()}. Fund your wallet first.`,
+            variant: "destructive",
+          });
+        } else {
+          toast({ title: result.error || "Payment failed", variant: "destructive" });
+        }
+        return;
+      }
+
+      if (!result.already_paid && result.fee) {
+        toast({ title: "₦3 Deducted", description: "₦3 has been deducted to watch this video." });
+      }
+
+      setPaidStreams((prev) => new Set(prev).add(streamId));
+      setPlayingVideo(streamId);
+      if (refreshProfile) refreshProfile();
+
+      // Update view count
+      const stream = streams.find((s) => s.id === streamId);
+      if (stream) {
+        await supabase
+          .from("streams")
+          .update({ views: (stream.views || 0) + 1 })
+          .eq("id", streamId);
+      }
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    } finally {
+      setPaying(false);
     }
   };
 
