@@ -129,24 +129,8 @@ const SelfieMirror = () => {
     setUploadProgress(10);
 
     try {
-      const fileName = `${user.id}/${Date.now()}.webm`;
-
       setUploadProgress(30);
-      const { error: uploadError } = await supabase.storage
-        .from("streams")
-        .upload(fileName, recordedBlob, {
-          contentType: "video/webm",
-          upsert: false,
-        });
-
-      if (uploadError) throw uploadError;
-
-      setUploadProgress(60);
-
-      const { data: urlData } = supabase.storage
-        .from("streams")
-        .getPublicUrl(fileName);
-
+      const videoUrl = await uploadToCloudinary(recordedBlob, "streams", "video");
       setUploadProgress(80);
 
       const { error: insertError } = await supabase.from("streams").insert({
