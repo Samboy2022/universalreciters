@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import AdminLayout from "@/components/layout/AdminLayout";
 import { supabase } from "@/integrations/supabase/client";
+import { uploadToCloudinary } from "@/lib/cloudinary";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -70,15 +71,7 @@ const AdminCMS = () => {
   const handleLogoUpload = async () => {
     if (!logoFile) return;
     try {
-      const ext = logoFile.name.split(".").pop();
-      const path = `logo.${ext}`;
-      await supabase.storage.from("cms-assets").remove([path]);
-      const { error: uploadError } = await supabase.storage
-        .from("cms-assets")
-        .upload(path, logoFile, { upsert: true });
-      if (uploadError) throw uploadError;
-      const { data: urlData } = supabase.storage.from("cms-assets").getPublicUrl(path);
-      const publicUrl = `${urlData.publicUrl}?t=${Date.now()}`;
+      const publicUrl = await uploadToCloudinary(logoFile, "cms-assets", "image");
       await updateSetting.mutateAsync({ key: "logo_url", value: publicUrl });
       setLogoPreview(publicUrl);
       setLogoFile(null);
@@ -90,7 +83,6 @@ const AdminCMS = () => {
 
   const handleRemoveLogo = async () => {
     try {
-      await supabase.storage.from("cms-assets").remove(["logo.png", "logo.jpg", "logo.jpeg", "logo.svg", "logo.webp"]);
       await updateSetting.mutateAsync({ key: "logo_url", value: "" });
       setLogoPreview("");
       toast({ title: "Logo removed. Default logo will be used." });
@@ -102,14 +94,7 @@ const AdminCMS = () => {
   const handleOgImageUpload = async () => {
     if (!ogImageFile) return;
     try {
-      const ext = ogImageFile.name.split(".").pop();
-      const path = `og-image.${ext}`;
-      const { error: uploadError } = await supabase.storage
-        .from("cms-assets")
-        .upload(path, ogImageFile, { upsert: true });
-      if (uploadError) throw uploadError;
-      const { data: urlData } = supabase.storage.from("cms-assets").getPublicUrl(path);
-      const publicUrl = `${urlData.publicUrl}?t=${Date.now()}`;
+      const publicUrl = await uploadToCloudinary(ogImageFile, "cms-assets", "image");
       await updateSetting.mutateAsync({ key: "seo_og_image", value: publicUrl });
       setSettings((prev) => ({ ...prev, seo_og_image: publicUrl }));
       setOgImagePreview(publicUrl);

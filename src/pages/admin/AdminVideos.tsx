@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
+import { uploadToCloudinary } from "@/lib/cloudinary";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Edit, Trash2, Video, Eye, Loader2, Upload, X, Image as ImageIcon } from "lucide-react";
@@ -66,28 +67,14 @@ const AdminVideos = () => {
     fetchVideos();
   }, []);
 
-  const uploadFile = async (file: File, bucket: string): Promise<string | null> => {
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-    const filePath = `${user?.id}/${fileName}`;
-
-    const { error } = await supabase.storage
-      .from(bucket)
-      .upload(filePath, file, {
-        cacheControl: '3600',
-        upsert: false,
-      });
-
-    if (error) {
-      console.error(`Upload error for ${bucket}:`, error);
+  const uploadFile = async (file: File, folder: string): Promise<string | null> => {
+    try {
+      const resourceType = file.type.startsWith("video/") ? "video" : "image";
+      return await uploadToCloudinary(file, folder, resourceType);
+    } catch (error) {
+      console.error(`Upload error for ${folder}:`, error);
       return null;
     }
-
-    const { data: { publicUrl } } = supabase.storage
-      .from(bucket)
-      .getPublicUrl(filePath);
-
-    return publicUrl;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
