@@ -83,7 +83,6 @@ const AdminCMS = () => {
 
   const handleRemoveLogo = async () => {
     try {
-      await supabase.storage.from("cms-assets").remove(["logo.png", "logo.jpg", "logo.jpeg", "logo.svg", "logo.webp"]);
       await updateSetting.mutateAsync({ key: "logo_url", value: "" });
       setLogoPreview("");
       toast({ title: "Logo removed. Default logo will be used." });
