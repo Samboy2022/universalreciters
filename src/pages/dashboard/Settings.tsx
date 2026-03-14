@@ -77,22 +77,11 @@ const Settings = () => {
 
     setAvatarUploading(true);
     try {
-      const ext = file.name.split(".").pop();
-      const path = `${user.id}/avatar.${ext}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from("thumbnails")
-        .upload(path, file, { upsert: true });
-
-      if (uploadError) throw uploadError;
-
-      const { data: urlData } = supabase.storage
-        .from("thumbnails")
-        .getPublicUrl(path);
+      const avatarUrl = await uploadToCloudinary(file, "avatars", "image");
 
       const { error: updateError } = await supabase
         .from("profiles")
-        .update({ avatar_url: urlData.publicUrl })
+        .update({ avatar_url: avatarUrl })
         .eq("id", user.id);
 
       if (updateError) throw updateError;

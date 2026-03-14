@@ -94,14 +94,7 @@ const AdminCMS = () => {
   const handleOgImageUpload = async () => {
     if (!ogImageFile) return;
     try {
-      const ext = ogImageFile.name.split(".").pop();
-      const path = `og-image.${ext}`;
-      const { error: uploadError } = await supabase.storage
-        .from("cms-assets")
-        .upload(path, ogImageFile, { upsert: true });
-      if (uploadError) throw uploadError;
-      const { data: urlData } = supabase.storage.from("cms-assets").getPublicUrl(path);
-      const publicUrl = `${urlData.publicUrl}?t=${Date.now()}`;
+      const publicUrl = await uploadToCloudinary(ogImageFile, "cms-assets", "image");
       await updateSetting.mutateAsync({ key: "seo_og_image", value: publicUrl });
       setSettings((prev) => ({ ...prev, seo_og_image: publicUrl }));
       setOgImagePreview(publicUrl);

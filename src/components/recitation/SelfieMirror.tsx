@@ -137,7 +137,7 @@ const SelfieMirror = () => {
         user_id: user.id,
         title: title.trim(),
         description: description.trim() || null,
-        video_url: urlData.publicUrl,
+        video_url: videoUrl,
         duration: recordingTime,
         type: "recitation",
         is_public: true,
