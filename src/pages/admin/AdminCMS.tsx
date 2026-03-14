@@ -71,15 +71,7 @@ const AdminCMS = () => {
   const handleLogoUpload = async () => {
     if (!logoFile) return;
     try {
-      const ext = logoFile.name.split(".").pop();
-      const path = `logo.${ext}`;
-      await supabase.storage.from("cms-assets").remove([path]);
-      const { error: uploadError } = await supabase.storage
-        .from("cms-assets")
-        .upload(path, logoFile, { upsert: true });
-      if (uploadError) throw uploadError;
-      const { data: urlData } = supabase.storage.from("cms-assets").getPublicUrl(path);
-      const publicUrl = `${urlData.publicUrl}?t=${Date.now()}`;
+      const publicUrl = await uploadToCloudinary(logoFile, "cms-assets", "image");
       await updateSetting.mutateAsync({ key: "logo_url", value: publicUrl });
       setLogoPreview(publicUrl);
       setLogoFile(null);
