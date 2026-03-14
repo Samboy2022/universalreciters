@@ -136,25 +136,29 @@ const Settings = () => {
 
   return (
     <DashboardLayout>
-      <div className="max-w-3xl mx-auto space-y-6">
+      <div className="max-w-4xl mx-auto space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Settings</h1>
-          <p className="text-muted-foreground text-sm">Manage your account and preferences</p>
+          <h1 className="text-2xl md:text-3xl font-bold text-foreground">Settings</h1>
+          <p className="text-sm text-muted-foreground mt-1">Manage your account and preferences</p>
         </div>
 
-        <Tabs defaultValue="profile" className="space-y-4">
+        <Tabs defaultValue="profile" className="space-y-4 md:space-y-6">
           <TabsList className="grid grid-cols-4 w-full">
-            <TabsTrigger value="profile" className="gap-2 text-xs sm:text-sm">
-              <User className="w-4 h-4 hidden sm:inline" /> Profile
+            <TabsTrigger value="profile" className="gap-1 text-xs sm:text-sm">
+              <User className="w-3 h-3 sm:w-4 sm:h-4" />
+              <span className="hidden sm:inline">Profile</span>
             </TabsTrigger>
-            <TabsTrigger value="security" className="gap-2 text-xs sm:text-sm">
-              <Shield className="w-4 h-4 hidden sm:inline" /> Security
+            <TabsTrigger value="security" className="gap-1 text-xs sm:text-sm">
+              <Shield className="w-3 h-3 sm:w-4 sm:h-4" />
+              <span className="hidden sm:inline">Security</span>
             </TabsTrigger>
-            <TabsTrigger value="notifications" className="gap-2 text-xs sm:text-sm">
-              <Bell className="w-4 h-4 hidden sm:inline" /> Alerts
+            <TabsTrigger value="notifications" className="gap-1 text-xs sm:text-sm">
+              <Bell className="w-3 h-3 sm:w-4 sm:h-4" />
+              <span className="hidden sm:inline">Alerts</span>
             </TabsTrigger>
-            <TabsTrigger value="appearance" className="gap-2 text-xs sm:text-sm">
-              <Palette className="w-4 h-4 hidden sm:inline" /> Theme
+            <TabsTrigger value="appearance" className="gap-1 text-xs sm:text-sm">
+              <Palette className="w-3 h-3 sm:w-4 sm:h-4" />
+              <span className="hidden sm:inline">Theme</span>
             </TabsTrigger>
           </TabsList>
 

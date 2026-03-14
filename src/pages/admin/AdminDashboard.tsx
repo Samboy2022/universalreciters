@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import AdminLayout from "@/components/layout/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { Users, Video, Key, CreditCard, TrendingUp, Activity } from "lucide-react";
+import { Users, Video, Key, CreditCard, TrendingUp, Activity, WalletIcon, Star, RefreshCw } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 interface Stats {
   totalUsers: number;
@@ -12,9 +14,13 @@ interface Stats {
   totalPins: number;
   redeemedPins: number;
   totalTransactions: number;
+  totalRevenue: number;
+  totalUserBalance: number;
+  totalPointsBalance: number;
 }
 
 const AdminDashboard = () => {
+  const { toast } = useToast();
   const [stats, setStats] = useState<Stats>({
     totalUsers: 0,
     activeUsers: 0,
@@ -23,61 +29,66 @@ const AdminDashboard = () => {
     totalPins: 0,
     redeemedPins: 0,
     totalTransactions: 0,
+    totalRevenue: 0,
+    totalUserBalance: 0,
+    totalPointsBalance: 0,
   });
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const [
-          { count: totalUsers },
-          { count: activeUsers },
-          { count: totalVideos },
-          { count: totalRecitations },
-          { count: totalPins },
-          { count: redeemedPins },
-          { count: totalTransactions },
-        ] = await Promise.all([
-          supabase.from("profiles").select("*", { count: "exact", head: true }),
-          supabase.from("profiles").select("*", { count: "exact", head: true }).eq("is_active", true),
-          supabase.from("videos").select("*", { count: "exact", head: true }),
-          supabase.from("recitations").select("*", { count: "exact", head: true }),
-          supabase.from("redemption_pins").select("*", { count: "exact", head: true }),
-          supabase.from("redemption_pins").select("*", { count: "exact", head: true }).eq("is_redeemed", true),
-          supabase.from("transactions").select("*", { count: "exact", head: true }),
-        ]);
+  const fetchStats = async () => {
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase.rpc("get_admin_stats");
 
-        setStats({
-          totalUsers: totalUsers || 0,
-          activeUsers: activeUsers || 0,
-          totalVideos: totalVideos || 0,
-          totalRecitations: totalRecitations || 0,
-          totalPins: totalPins || 0,
-          redeemedPins: redeemedPins || 0,
-          totalTransactions: totalTransactions || 0,
-        });
-      } catch (error) {
+      if (error) {
         console.error("Error fetching stats:", error);
-      } finally {
-        setIsLoading(false);
+        toast({
+          title: "Error Loading Stats",
+          description: error.message || "Failed to load dashboard statistics",
+          variant: "destructive",
+        });
+        throw error;
       }
-    };
 
+      if (data) {
+        console.log("Stats loaded:", data);
+        setStats(data as unknown as Stats);
+        toast({
+          title: "Stats Refreshed",
+          description: "Dashboard data updated successfully",
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching stats:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchStats();
   }, []);
+
+  const formatCurrency = (value: number) => {
+    return `₦${Number(value || 0).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  };
+
+  const formatNumber = (value: number) => {
+    return Number(value || 0).toLocaleString('en-NG');
+  };
 
   const statCards = [
     {
       title: "Total Users",
-      value: stats.totalUsers,
-      subtitle: `${stats.activeUsers} active`,
+      value: formatNumber(stats.totalUsers),
+      subtitle: `${formatNumber(stats.activeUsers)} active`,
       icon: Users,
       color: "text-primary",
       bgColor: "bg-primary/10",
     },
     {
       title: "Videos",
-      value: stats.totalVideos,
+      value: formatNumber(stats.totalVideos),
       subtitle: "Uploaded content",
       icon: Video,
       color: "text-accent",
@@ -85,7 +96,7 @@ const AdminDashboard = () => {
     },
     {
       title: "Recitations",
-      value: stats.totalRecitations,
+      value: formatNumber(stats.totalRecitations),
       subtitle: "Total attempts",
       icon: Activity,
       color: "text-success",
@@ -93,44 +104,79 @@ const AdminDashboard = () => {
     },
     {
       title: "Redemption PINs",
-      value: stats.totalPins,
-      subtitle: `${stats.redeemedPins} redeemed`,
+      value: formatNumber(stats.totalPins),
+      subtitle: `${formatNumber(stats.redeemedPins)} redeemed`,
       icon: Key,
       color: "text-warning",
       bgColor: "bg-warning/10",
     },
     {
       title: "Transactions",
-      value: stats.totalTransactions,
+      value: formatNumber(stats.totalTransactions),
       subtitle: "Total operations",
       icon: CreditCard,
       color: "text-destructive",
       bgColor: "bg-destructive/10",
+    },
+    {
+      title: "Admin Revenue",
+      value: formatCurrency(stats.totalRevenue),
+      subtitle: "From unlocks",
+      icon: TrendingUp,
+      color: "text-success",
+      bgColor: "bg-success/10",
+    },
+    {
+      title: "User Balances",
+      value: formatCurrency(stats.totalUserBalance),
+      subtitle: "Total held",
+      icon: WalletIcon,
+      color: "text-primary",
+      bgColor: "bg-primary/10",
+    },
+    {
+      title: "Total Points",
+      value: formatNumber(stats.totalPointsBalance),
+      subtitle: "Awarded points",
+      icon: Star,
+      color: "text-warning",
+      bgColor: "bg-warning/10",
     },
   ];
 
   return (
     <AdminLayout>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Dashboard Overview</h1>
-          <p className="text-muted-foreground">Welcome to the admin dashboard</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">Dashboard Overview</h1>
+            <p className="text-muted-foreground">Welcome to the admin dashboard</p>
+          </div>
+          <Button 
+            onClick={fetchStats} 
+            disabled={isLoading}
+            variant="outline"
+            size="sm"
+          >
+            <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {statCards.map((stat) => (
-            <Card key={stat.title}>
+            <Card key={stat.title} className="hover:shadow-lg transition-shadow">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground">{stat.title}</p>
-                    <p className="text-2xl font-bold text-foreground mt-1">
-                      {isLoading ? "..." : stat.value.toLocaleString()}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-muted-foreground mb-2">{stat.title}</p>
+                    <p className="text-2xl font-bold text-foreground truncate">
+                      {isLoading ? "..." : stat.value}
                     </p>
                     <p className="text-xs text-muted-foreground mt-1">{stat.subtitle}</p>
                   </div>
-                  <div className={`p-3 rounded-full ${stat.bgColor}`}>
+                  <div className={`p-3 rounded-full ${stat.bgColor} flex-shrink-0 ml-2`}>
                     <stat.icon className={`w-6 h-6 ${stat.color}`} />
                   </div>
                 </div>

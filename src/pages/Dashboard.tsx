@@ -19,28 +19,37 @@ const Dashboard = () => {
 
   return (
     <DashboardLayout>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 auto-rows-auto">
-        {/* Part 1: Video Section */}
-        <div className="min-h-[400px]">
-          <VideoPlayer onSelectVideo={setSelectedVideo} />
+      <div className="space-y-6">
+        {/* Header */}
+        <div>
+          <h1 className="text-2xl md:text-3xl font-bold text-foreground">Dashboard</h1>
+          <p className="text-sm text-muted-foreground mt-1">Practice and perfect your Qur'an recitation</p>
         </div>
 
-        {/* Part 2: Recitation & Checking Section */}
-        <div className="min-h-[400px]">
-          <RecitationChecker
-            arabicText={selectedVideo?.arabicText || ""}
-            onComplete={handleRecitationComplete}
-          />
-        </div>
+        {/* Main Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+          {/* Part 1: Video Section */}
+          <div className="min-h-[400px]">
+            <VideoPlayer onSelectVideo={setSelectedVideo} />
+          </div>
 
-        {/* Part 3: Selfie Mirror */}
-        <div className="min-h-[300px]">
-          <SelfieMirror />
-        </div>
+          {/* Part 2: Recitation & Checking Section */}
+          <div className="min-h-[400px]">
+            <RecitationChecker
+              arabicText={selectedVideo?.arabic_text || ""}
+              onComplete={handleRecitationComplete}
+            />
+          </div>
 
-        {/* Part 4: Rankings */}
-        <div className="min-h-[300px]">
-          <RankingWidget />
+          {/* Part 3: Selfie Mirror */}
+          <div className="min-h-[300px]">
+            <SelfieMirror />
+          </div>
+
+          {/* Part 4: Rankings */}
+          <div className="min-h-[300px]">
+            <RankingWidget />
+          </div>
         </div>
       </div>
     </DashboardLayout>

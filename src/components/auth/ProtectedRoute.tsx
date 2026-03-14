@@ -14,7 +14,10 @@ const ProtectedRoute = ({ children, requireAdmin = false }: ProtectedRouteProps)
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <div className="text-center space-y-4">
+          <Loader2 className="w-12 h-12 animate-spin text-primary mx-auto" />
+          <p className="text-lg font-medium text-foreground">Loading...</p>
+        </div>
       </div>
     );
   }
@@ -25,6 +28,11 @@ const ProtectedRoute = ({ children, requireAdmin = false }: ProtectedRouteProps)
 
   if (requireAdmin && !isAdmin) {
     return <Navigate to="/dashboard" replace />;
+  }
+
+  // Redirect admin users to admin panel when accessing regular user routes
+  if (isAuthenticated && isAdmin && !requireAdmin && !location.pathname.startsWith('/admin')) {
+    return <Navigate to="/admin" replace />;
   }
 
   return <>{children}</>;

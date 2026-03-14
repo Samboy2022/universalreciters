@@ -212,15 +212,15 @@ const RecitationChecker = ({ arabicText, onComplete, onRecordingComplete }: Reci
   const getWordStyle = (status: RecitationWord['status']) => {
     switch (status) {
       case "correct":
-        return "bg-success/20 text-success border-success/30";
+        return "bg-success/15 text-success-foreground border-success/40 shadow-success/20";
       case "incorrect":
-        return "bg-destructive/20 text-destructive border-destructive/30";
+        return "bg-destructive/15 text-destructive-foreground border-destructive/40 shadow-destructive/20";
       case "partial":
-        return "bg-warning/20 text-warning border-warning/30";
+        return "bg-warning/15 text-warning-foreground border-warning/40 shadow-warning/20";
       case "current":
-        return "bg-accent/40 text-accent-foreground border-accent ring-2 ring-accent animate-pulse";
+        return "bg-primary/20 text-primary-foreground border-primary ring-2 ring-primary/50 animate-pulse shadow-lg shadow-primary/30 scale-110";
       default:
-        return "text-foreground border-transparent";
+        return "text-foreground border-border/30 hover:border-primary/30";
     }
   };
 
@@ -255,56 +255,75 @@ const RecitationChecker = ({ arabicText, onComplete, onRecordingComplete }: Reci
       </CardHeader>
       <CardContent className="flex-1 flex flex-col min-h-0">
         {/* Arabic Text Display with Scroll */}
-        <ScrollArea className="flex-1 max-h-[300px] rounded-lg border border-border bg-muted/30">
-          <div ref={scrollRef} className="p-4 md:p-6">
-            <div className="space-y-4" dir="rtl">
+        <ScrollArea className="flex-1 max-h-[300px] rounded-lg border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-background shadow-inner">
+          <div ref={scrollRef} className="p-6 md:p-8">
+            <div className="space-y-6" dir="rtl">
               {/* Display title */}
-              <div className="text-center pb-2" dir="ltr">
-                <p className="text-xs text-muted-foreground">
-                  {arabicText ? "Selected Surah" : "Fallback Practice"}
+              <div className="text-center pb-3 border-b border-primary/10" dir="ltr">
+                <p className="text-xs text-muted-foreground uppercase tracking-wider">
+                  {arabicText ? "Selected Surah" : "Practice Mode"}
                 </p>
-                <p className="text-sm font-medium text-foreground">
+                <p className="text-sm font-semibold text-primary mt-1">
                   {arabicText ? "Current Selection" : FALLBACK_TITLE}
                 </p>
               </div>
 
-              {/* Bismillah Header */}
-              <div className="text-center pb-4 mb-4 border-b border-border/50">
-                <span className="font-arabic text-2xl md:text-3xl text-primary font-bold">
-                  بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
-                </span>
+              {/* Bismillah Header - Decorative */}
+              <div className="text-center py-6 mb-6 border-y-2 border-primary/20 bg-primary/5 rounded-lg">
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center justify-center opacity-10">
+                    <div className="w-32 h-32 bg-primary rounded-full blur-3xl" />
+                  </div>
+                  <span className="relative font-arabic text-3xl md:text-4xl text-primary font-bold drop-shadow-sm leading-relaxed">
+                    بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
+                  </span>
+                </div>
               </div>
               
               {/* Word-by-word display with status highlighting */}
-              <div className="font-arabic text-xl md:text-2xl lg:text-3xl leading-[2.5] text-center flex flex-wrap justify-center gap-2">
-                {words.map((word, index) => (
-                  <span
-                    key={index}
-                    data-word-index={index}
-                    className={cn(
-                      "inline-flex items-center px-2 py-1 rounded-md border transition-all duration-300",
-                      getWordStyle(word.status)
-                    )}
-                  >
-                    {word.text}
-                    {getStatusIcon(word.status)}
-                  </span>
-                ))}
-              </div>
-
-              {/* Verse numbers display for context */}
-              {verses.length > 1 && (
-                <div className="mt-6 pt-4 border-t border-border/50 space-y-3">
-                  <p className="text-xs text-muted-foreground text-center mb-2" dir="ltr">
-                    Verses breakdown:
-                  </p>
-                  {verses.map((verse, idx) => (
-                    <p key={idx} className="font-arabic text-lg md:text-xl leading-[2] text-muted-foreground/80 text-center">
-                      <span className="text-primary/60 text-sm">({idx + 1})</span> {verse}
-                    </p>
+              <div className="font-arabic text-2xl md:text-3xl lg:text-4xl leading-[3] text-center">
+                <div className="flex flex-wrap justify-center gap-3">
+                  {words.map((word, index) => (
+                    <span
+                      key={index}
+                      data-word-index={index}
+                      className={cn(
+                        "inline-flex items-center px-3 py-2 rounded-xl border-2 transition-all duration-300 shadow-sm hover:shadow-md",
+                        getWordStyle(word.status),
+                        word.status === "pending" && "hover:bg-muted/50"
+                      )}
+                    >
+                      {word.text}
+                      {getStatusIcon(word.status)}
+                    </span>
                   ))}
                 </div>
-              )}
+              </div>
+
+              {/* Word count and progress indicator */}
+              <div className="text-center pt-6 mt-6 border-t border-primary/10" dir="ltr">
+                <div className="flex items-center justify-center gap-4 text-xs text-muted-foreground">
+                  <span className="flex items-center gap-1">
+                    <span className="w-2 h-2 rounded-full bg-success" />
+                    {words.filter(w => w.status === "correct").length} Correct
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <span className="w-2 h-2 rounded-full bg-warning" />
+                    {words.filter(w => w.status === "partial").length} Partial
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <span className="w-2 h-2 rounded-full bg-destructive" />
+                    {words.filter(w => w.status === "incorrect").length} Incorrect
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <span className="w-2 h-2 rounded-full bg-muted-foreground" />
+                    {words.filter(w => w.status === "pending").length} Remaining
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground/60 mt-3">
+                  Total: {words.length} words
+                </p>
+              </div>
             </div>
           </div>
         </ScrollArea>

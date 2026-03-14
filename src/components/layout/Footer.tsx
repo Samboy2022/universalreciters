@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import Logo from "@/components/ui/Logo";
-import { Heart } from "lucide-react";
+import { Heart, Mail, Phone, MapPin } from "lucide-react";
 import { useCMSSettings } from "@/hooks/useCMSSettings";
 
 const FacebookIcon = () => (
@@ -37,24 +37,59 @@ const Footer = () => {
     { key: "social_youtube", url: cms?.social_youtube, icon: <YouTubeIcon />, label: "YouTube", hoverClass: "hover:text-red-500" },
   ].filter((s) => s.url && s.url.trim() !== "");
 
+  const quickLinks = [
+    { href: "/", label: "Home" },
+    { href: "/streaming", label: "Streaming" },
+    { href: "/leaderboard", label: "Leaderboard" },
+    { href: "/about", label: "About" },
+  ];
+
+  const supportLinks = [
+    { href: "/help", label: "Help Center" },
+    { href: "/contact", label: "Contact Us" },
+    { href: "/privacy", label: "Privacy Policy" },
+    { href: "/terms", label: "Terms of Service" },
+  ];
+
   return (
-    <footer className="bg-card border-t border-border">
-      <div className="container mx-auto px-4 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-          {/* Brand */}
-          <div className="md:col-span-2">
-            <Logo size="lg" />
-            <p className="mt-4 text-muted-foreground text-sm max-w-md">
+    <footer className="bg-card border-t border-border relative overflow-hidden">
+      {/* Background Pattern */}
+      <div className="absolute inset-0 islamic-pattern opacity-5" />
+      
+      <div className="container mx-auto px-4 py-16 relative z-10">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
+          {/* Brand Section */}
+          <div className="lg:col-span-2">
+            <div className="hover:scale-105 transition-transform inline-block">
+              <Logo size="lg" />
+            </div>
+            <p className="mt-6 text-muted-foreground text-base leading-relaxed max-w-md">
               Universal Reciters turns Qur'an learning into a modern, rewarding, 
               and motivating experience. Watch, Listen, Recite, Get Checked, 
               Earn Points, Get Ranked, Get Rewarded.
             </p>
 
+            {/* Contact Info */}
+            <div className="mt-8 space-y-3">
+              <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                <Mail className="w-4 h-4 text-primary" />
+                <span>support@universalreciters.com</span>
+              </div>
+              <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                <Phone className="w-4 h-4 text-primary" />
+                <span>+234 (0) 123 456 7890</span>
+              </div>
+              <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                <MapPin className="w-4 h-4 text-primary" />
+                <span>Lagos, Nigeria</span>
+              </div>
+            </div>
+
             {/* Social Links */}
             {socialLinks.length > 0 && (
-              <div className="mt-6">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Follow Us</p>
-                <div className="flex gap-3">
+              <div className="mt-8">
+                <p className="text-sm font-bold text-foreground mb-4">Follow Us</p>
+                <div className="flex gap-4">
                   {socialLinks.map((social) => (
                     <a
                       key={social.key}
@@ -62,7 +97,7 @@ const Footer = () => {
                       target="_blank"
                       rel="noopener noreferrer"
                       aria-label={social.label}
-                      className={`text-muted-foreground transition-colors duration-200 ${social.hoverClass}`}
+                      className={`p-2 rounded-lg bg-muted/50 text-muted-foreground transition-all duration-300 hover:scale-110 hover:bg-primary/10 ${social.hoverClass}`}
                     >
                       {social.icon}
                     </a>
@@ -74,15 +109,15 @@ const Footer = () => {
 
           {/* Quick Links */}
           <div>
-            <h4 className="font-semibold text-foreground mb-4">Quick Links</h4>
-            <ul className="space-y-2">
-              {["Home", "Streaming", "Leaderboard", "About"].map((link) => (
-                <li key={link}>
+            <h4 className="font-bold text-foreground mb-6 text-lg">Quick Links</h4>
+            <ul className="space-y-3">
+              {quickLinks.map((link) => (
+                <li key={link.href}>
                   <Link
-                    to={link === "Home" ? "/" : `/${link.toLowerCase()}`}
-                    className="text-sm text-muted-foreground hover:text-primary transition-colors"
+                    to={link.href}
+                    className="text-muted-foreground hover:text-primary transition-all duration-200 hover:translate-x-1 inline-block"
                   >
-                    {link}
+                    {link.label}
                   </Link>
                 </li>
               ))}
@@ -91,29 +126,47 @@ const Footer = () => {
 
           {/* Support */}
           <div>
-            <h4 className="font-semibold text-foreground mb-4">Support</h4>
-            <ul className="space-y-2">
-              {["Help Center", "Contact Us", "Privacy Policy", "Terms of Service"].map((link) => (
-                <li key={link}>
-                  <a
-                    href="#"
-                    className="text-sm text-muted-foreground hover:text-primary transition-colors"
+            <h4 className="font-bold text-foreground mb-6 text-lg">Support</h4>
+            <ul className="space-y-3">
+              {supportLinks.map((link) => (
+                <li key={link.href}>
+                  <Link
+                    to={link.href}
+                    className="text-muted-foreground hover:text-primary transition-all duration-200 hover:translate-x-1 inline-block"
                   >
-                    {link}
-                  </a>
+                    {link.label}
+                  </Link>
                 </li>
               ))}
             </ul>
           </div>
         </div>
 
-        <div className="mt-12 pt-6 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-sm text-muted-foreground">
-            © {new Date().getFullYear()} {cms?.site_name || "Universal Reciters"}. All rights reserved.
-          </p>
-          <p className="text-sm text-muted-foreground flex items-center gap-1">
-            Made with <Heart className="w-4 h-4 text-destructive fill-current" /> for the Ummah
-          </p>
+        {/* Bottom Section */}
+        <div className="mt-16 pt-8 border-t border-border">
+          <div className="flex flex-col lg:flex-row items-center justify-between gap-6">
+            <div className="flex flex-col sm:flex-row items-center gap-6 text-sm text-muted-foreground">
+              <p>
+                © {new Date().getFullYear()} {cms?.site_name || "Universal Reciters"}. All rights reserved.
+              </p>
+              <div className="flex items-center gap-4">
+                <Link to="/privacy" className="hover:text-primary transition-colors">
+                  Privacy
+                </Link>
+                <span>•</span>
+                <Link to="/terms" className="hover:text-primary transition-colors">
+                  Terms
+                </Link>
+                <span>•</span>
+                <Link to="/cookies" className="hover:text-primary transition-colors">
+                  Cookies
+                </Link>
+              </div>
+            </div>
+            <p className="text-sm text-muted-foreground flex items-center gap-2">
+              Made with <Heart className="w-4 h-4 text-red-500 fill-current animate-pulse" /> for the Ummah
+            </p>
+          </div>
         </div>
       </div>
     </footer>

@@ -157,25 +157,27 @@ const Learn = () => {
     <DashboardLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Learn</h1>
-            <p className="text-muted-foreground">Master Qur'an recitation with guided lessons</p>
+            <h1 className="text-2xl md:text-3xl font-bold text-foreground">Learn</h1>
+            <p className="text-sm text-muted-foreground mt-1">Master Qur'an recitation with guided lessons</p>
           </div>
-          <Card className="p-4 min-w-[200px]">
+          <Card className="p-4 min-w-[200px] md:min-w-[240px]">
             <div className="flex items-center gap-3">
-              <Trophy className="w-8 h-8 text-primary" />
-              <div>
-                <p className="text-sm text-muted-foreground">Progress</p>
-                <p className="text-lg font-bold">{completedCount}/{videos.length} Complete</p>
+              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                <Trophy className="w-6 h-6 text-primary" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-muted-foreground">Progress</p>
+                <p className="text-lg font-bold text-foreground">{completedCount}/{videos.length} Complete</p>
               </div>
             </div>
-            <Progress value={progressPct} className="mt-2" />
+            <Progress value={progressPct} className="mt-3" />
           </Card>
         </div>
 
         {/* Search & Filter */}
-        <div className="flex flex-col md:flex-row gap-4">
+        <div className="flex flex-col sm:flex-row gap-3 md:gap-4">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
@@ -185,11 +187,11 @@ const Learn = () => {
               className="pl-10"
             />
           </div>
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList>
-              <TabsTrigger value="all">All ({videos.length})</TabsTrigger>
-              <TabsTrigger value="unlocked">Unlocked ({unlockedCount})</TabsTrigger>
-              <TabsTrigger value="completed">Completed ({completedCount})</TabsTrigger>
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full sm:w-auto">
+            <TabsList className="grid grid-cols-3 w-full sm:w-auto">
+              <TabsTrigger value="all" className="text-xs sm:text-sm">All ({videos.length})</TabsTrigger>
+              <TabsTrigger value="unlocked" className="text-xs sm:text-sm">Unlocked ({unlockedCount})</TabsTrigger>
+              <TabsTrigger value="completed" className="text-xs sm:text-sm">Done ({completedCount})</TabsTrigger>
             </TabsList>
           </Tabs>
         </div>
@@ -208,7 +210,7 @@ const Learn = () => {
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
             {filteredVideos.map((video) => {
               const unlocked = isVideoUnlocked(video);
               const completed = isVideoCompleted(video.id);

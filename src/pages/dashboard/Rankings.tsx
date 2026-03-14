@@ -121,26 +121,26 @@ const Rankings = () => {
     <DashboardLayout>
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Rankings</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-2xl md:text-3xl font-bold text-foreground">Rankings</h1>
+          <p className="text-sm text-muted-foreground mt-1">
             See how you rank against other reciters in your area
           </p>
         </div>
 
         {/* User's Current Position */}
         <Card className="bg-primary/5 border-primary/20">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-                  <Trophy className="w-8 h-8 text-primary" />
+          <CardContent className="p-4 md:p-6">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-3 md:gap-4">
+                <div className="w-14 h-14 md:w-16 md:h-16 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                  <Trophy className="w-7 h-7 md:w-8 md:h-8 text-primary" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Your Current Rank</p>
-                  <p className="text-3xl font-bold text-foreground">
+                  <p className="text-xs text-muted-foreground">Your Current Rank</p>
+                  <p className="text-2xl md:text-3xl font-bold text-foreground">
                     #{userRank || "--"}
                   </p>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-xs md:text-sm text-muted-foreground">
                     in{" "}
                     {activeTab === "ward"
                       ? "your ward"
@@ -152,9 +152,9 @@ const Rankings = () => {
                   </p>
                 </div>
               </div>
-              <div className="text-right">
-                <p className="text-sm text-muted-foreground">Total Points</p>
-                <p className="text-2xl font-bold text-primary">
+              <div className="text-left sm:text-right">
+                <p className="text-xs text-muted-foreground">Total Points</p>
+                <p className="text-xl md:text-2xl font-bold text-primary">
                   {profile?.points || 0}
                 </p>
               </div>
@@ -173,19 +173,21 @@ const Rankings = () => {
           <CardContent>
             <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
               <TabsList className="grid grid-cols-4 w-full">
-                <TabsTrigger value="ward" className="gap-1">
-                  <MapPin className="w-4 h-4" />
-                  Ward
+                <TabsTrigger value="ward" className="gap-1 text-xs sm:text-sm">
+                  <MapPin className="w-3 h-3 sm:w-4 sm:h-4" />
+                  <span className="hidden sm:inline">Ward</span>
+                  <span className="sm:hidden">Ward</span>
                 </TabsTrigger>
-                <TabsTrigger value="lga" className="gap-1">
-                  LGA
+                <TabsTrigger value="lga" className="gap-1 text-xs sm:text-sm">
+                  <span>LGA</span>
                 </TabsTrigger>
-                <TabsTrigger value="state" className="gap-1">
-                  State
+                <TabsTrigger value="state" className="gap-1 text-xs sm:text-sm">
+                  <span>State</span>
                 </TabsTrigger>
-                <TabsTrigger value="national" className="gap-1">
-                  <Trophy className="w-4 h-4" />
-                  National
+                <TabsTrigger value="national" className="gap-1 text-xs sm:text-sm">
+                  <Trophy className="w-3 h-3 sm:w-4 sm:h-4" />
+                  <span className="hidden sm:inline">National</span>
+                  <span className="sm:hidden">All</span>
                 </TabsTrigger>
               </TabsList>
             </Tabs>

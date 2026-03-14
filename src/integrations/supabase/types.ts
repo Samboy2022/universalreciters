@@ -432,6 +432,45 @@ export type Database = {
           },
         ]
       }
+      stream_views: {
+        Row: {
+          amount: number
+          created_at: string | null
+          id: string
+          stream_id: string
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string | null
+          id?: string
+          stream_id: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          id?: string
+          stream_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stream_views_stream_id_fkey"
+            columns: ["stream_id"]
+            isOneToOne: false
+            referencedRelation: "streams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stream_views_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       streams: {
         Row: {
           created_at: string | null
@@ -745,12 +784,33 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_add_balance: {
+        Args: { _amount: number; _user_id: string }
+        Returns: Json
+      }
+      admin_deduct_balance: {
+        Args: { _amount: number; _user_id: string }
+        Returns: Json
+      }
+      get_admin_stats: { Args: never; Returns: Json }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
         Returns: boolean
+      }
+      pay_stream_view: {
+        Args: { _stream_id: string; _user_id: string }
+        Returns: Json
+      }
+      redeem_pin: {
+        Args: { _pin_code: string; _user_id: string }
+        Returns: Json
+      }
+      unlock_video: {
+        Args: { _user_id: string; _video_id: string }
+        Returns: Json
       }
     }
     Enums: {

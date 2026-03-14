@@ -58,27 +58,32 @@ const Login = () => {
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-hero islamic-pattern">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <div className="text-center space-y-4">
+          <Loader2 className="w-12 h-12 animate-spin text-primary mx-auto" />
+          <p className="text-lg font-medium text-foreground">Loading...</p>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-hero islamic-pattern p-4">
-      <Card className="w-full max-w-md shadow-glow">
-        <CardHeader className="text-center">
-          <Link to="/" className="inline-block mb-4">
+      <Card className="w-full max-w-md shadow-glow animate-fade-in border-2">
+        <CardHeader className="text-center space-y-4 pb-8">
+          <Link to="/" className="inline-block mb-2 hover:scale-105 transition-transform">
             <Logo size="lg" className="mx-auto" />
           </Link>
-          <CardTitle className="text-2xl">Welcome Back</CardTitle>
-          <CardDescription>
-            Sign in to continue your recitation journey
-          </CardDescription>
+          <div>
+            <CardTitle className="text-3xl font-bold mb-2">Welcome Back</CardTitle>
+            <CardDescription className="text-base">
+              Sign in to continue your recitation journey
+            </CardDescription>
+          </div>
         </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+        <CardContent className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email" className="text-sm font-semibold">Email Address</Label>
               <Input
                 id="email"
                 type="email"
@@ -86,11 +91,13 @@ const Login = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                className="h-12 text-base"
+                disabled={isLoading}
               />
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password" className="text-sm font-semibold">Password</Label>
               <div className="relative">
                 <Input
                   id="password"
@@ -99,38 +106,55 @@ const Login = () => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
+                  className="h-12 text-base pr-12"
+                  disabled={isLoading}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors p-1"
+                  disabled={isLoading}
                 >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
               </div>
             </div>
 
-            <Button type="submit" className="w-full gap-2" disabled={isLoading}>
+            <Button 
+              type="submit" 
+              className="w-full h-12 text-base font-semibold hover:scale-[1.02] transition-transform" 
+              disabled={isLoading}
+            >
               {isLoading ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                  Signing In...
+                </>
               ) : (
-                <LogIn className="w-4 h-4" />
+                "Sign In"
               )}
-              Sign In
             </Button>
           </form>
 
-          <div className="mt-6 space-y-3">
-            <div className="text-center text-sm">
-              <span className="text-muted-foreground">Don't have an account? </span>
-              <Link to="/register" className="text-primary font-medium hover:underline">
-                Register now
-              </Link>
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t" />
             </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-card px-2 text-muted-foreground">New to Universal Reciters?</span>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <Link to="/register" className="block">
+              <Button variant="outline" className="w-full h-12 text-base font-semibold hover:bg-primary hover:text-primary-foreground transition-colors">
+                Create Free Account
+              </Button>
+            </Link>
             <div className="text-center">
               <Link
                 to="/admin/login"
-                className="text-xs text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-1"
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-1"
               >
                 Admin Portal →
               </Link>

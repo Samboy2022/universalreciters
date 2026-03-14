@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import SeoAndThemeManager from "@/components/SeoAndThemeManager";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
+import AdminProtectedRoute from "@/components/auth/AdminProtectedRoute";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -105,59 +106,59 @@ const App = () => (
             
             {/* Admin routes */}
             <Route path="/admin" element={
-              <ProtectedRoute requireAdmin>
+              <AdminProtectedRoute>
                 <AdminDashboard />
-              </ProtectedRoute>
+              </AdminProtectedRoute>
             } />
             <Route path="/admin/surahs" element={
-              <ProtectedRoute requireAdmin>
+              <AdminProtectedRoute>
                 <AdminSurahs />
-              </ProtectedRoute>
+              </AdminProtectedRoute>
             } />
             <Route path="/admin/surah-texts" element={
-              <ProtectedRoute requireAdmin>
+              <AdminProtectedRoute>
                 <AdminSurahTexts />
-              </ProtectedRoute>
+              </AdminProtectedRoute>
             } />
             <Route path="/admin/rankings" element={
-              <ProtectedRoute requireAdmin>
+              <AdminProtectedRoute>
                 <AdminRankings />
-              </ProtectedRoute>
+              </AdminProtectedRoute>
             } />
             <Route path="/admin/learning" element={
-              <ProtectedRoute requireAdmin>
+              <AdminProtectedRoute>
                 <AdminLearning />
-              </ProtectedRoute>
+              </AdminProtectedRoute>
             } />
             <Route path="/admin/wallet" element={
-              <ProtectedRoute requireAdmin>
+              <AdminProtectedRoute>
                 <AdminWallet />
-              </ProtectedRoute>
+              </AdminProtectedRoute>
             } />
             <Route path="/admin/videos" element={
-              <ProtectedRoute requireAdmin>
+              <AdminProtectedRoute>
                 <AdminVideos />
-              </ProtectedRoute>
+              </AdminProtectedRoute>
             } />
             <Route path="/admin/users" element={
-              <ProtectedRoute requireAdmin>
+              <AdminProtectedRoute>
                 <AdminUsers />
-              </ProtectedRoute>
+              </AdminProtectedRoute>
             } />
             <Route path="/admin/pins" element={
-              <ProtectedRoute requireAdmin>
+              <AdminProtectedRoute>
                 <AdminPins />
-              </ProtectedRoute>
+              </AdminProtectedRoute>
             } />
             <Route path="/admin/payments" element={
-              <ProtectedRoute requireAdmin>
+              <AdminProtectedRoute>
                 <AdminPayments />
-              </ProtectedRoute>
+              </AdminProtectedRoute>
             } />
             <Route path="/admin/cms" element={
-              <ProtectedRoute requireAdmin>
+              <AdminProtectedRoute>
                 <AdminCMS />
-              </ProtectedRoute>
+              </AdminProtectedRoute>
             } />
             
             <Route path="*" element={<NotFound />} />

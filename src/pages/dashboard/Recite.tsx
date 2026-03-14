@@ -19,7 +19,10 @@ import {
   Trophy,
   Target,
   Loader2,
-  AlertCircle
+  AlertCircle,
+  Lock,
+  Unlock,
+  WalletIcon
 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
@@ -28,6 +31,7 @@ interface Video {
   title: string;
   arabic_text: string;
   video_url: string;
+  unlock_fee: number | null;
 }
 
 interface WordResult {
@@ -49,11 +53,12 @@ interface AnalysisResult {
 // Fallback Arabic text - Suratul Fatiha
 const FALLBACK_ARABIC_TEXT = "بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ الْحَمْدُ لِلَّهِ رَبِّ الْعَالَمِينَ الرَّحْمَٰنِ الرَّحِيمِ مَالِكِ يَوْمِ الدِّينِ إِيَّاكَ نَعْبُدُ وَإِيَّاكَ نَسْتَعِينُ اهْدِنَا الصِّرَاطَ الْمُسْتَقِيمَ صِرَاطَ الَّذِينَ أَنْعَمْتَ عَلَيْهِمْ غَيْرِ الْمَغْضُوبِ عَلَيْهِمْ وَلَا الضَّالِّينَ";
 const FALLBACK_TITLE = "Suratul Fatiha (الفاتحة)";
-const FALLBACK_VIDEO = {
+const FALLBACK_VIDEO: Video = {
   id: 'fallback',
   title: FALLBACK_TITLE,
   arabic_text: FALLBACK_ARABIC_TEXT,
-  video_url: ''
+  video_url: '',
+  unlock_fee: 0,
 };
 
 const Recite = () => {
@@ -66,20 +71,22 @@ const Recite = () => {
   const [userRecitations, setUserRecitations] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [transcribedText, setTranscribedText] = useState("");
+  const [unlockedVideoIds, setUnlockedVideoIds] = useState<Set<string>>(new Set());
+  const [isUnlocking, setIsUnlocking] = useState(false);
   
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<number | null>(null);
   const recognitionRef = useRef<any>(null);
   
-  const { user, profile } = useAuth();
+  const { user, profile, refreshProfile } = useAuth();
   const { toast } = useToast();
 
   // Fetch videos
   const fetchVideos = async () => {
     const { data } = await supabase
       .from("videos")
-      .select("id, title, arabic_text, video_url")
+      .select("id, title, arabic_text, video_url, unlock_fee")
       .order("created_at", { ascending: false });
 
     if (data && data.length > 0) {
@@ -113,10 +120,76 @@ const Recite = () => {
     }
   };
 
+  const fetchUnlockedVideos = async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from("transactions")
+      .select("description")
+      .eq("user_id", user.id)
+      .eq("category", "video_unlock")
+      .eq("status", "completed");
+
+    if (data) {
+      const ids = new Set<string>();
+      data.forEach((tx) => {
+        const match = tx.description?.match(/Unlocked video: (.+)/);
+        if (match) ids.add(match[1]);
+      });
+      setUnlockedVideoIds(ids);
+    }
+  };
+
   useEffect(() => {
     fetchVideos();
     fetchUserRecitations();
+    fetchUnlockedVideos();
   }, [user]);
+
+  const isVideoUnlocked = (video: Video) => {
+    if (video.id === 'fallback') return true;
+    if (!video.unlock_fee || video.unlock_fee <= 0) return true;
+    return unlockedVideoIds.has(video.id);
+  };
+
+  const handleUnlockVideo = async (video: Video) => {
+    if (!user) return;
+    setIsUnlocking(true);
+    try {
+      const { data, error } = await supabase.rpc("unlock_video", {
+        _user_id: user.id,
+        _video_id: video.id,
+      });
+
+      if (error) throw error;
+
+      const result = data as { success: boolean; error?: string; fee?: number; required?: number; balance?: number; already_unlocked?: boolean };
+
+      if (!result.success) {
+        if (result.error === 'Insufficient balance') {
+          toast({
+            title: "Insufficient Balance",
+            description: `You need ₦${result.required} but have ₦${Number(result.balance).toLocaleString()}. Fund your wallet first.`,
+            variant: "destructive",
+          });
+        } else {
+          toast({ title: result.error || "Failed to unlock", variant: "destructive" });
+        }
+        return;
+      }
+
+      toast({
+        title: result.fee === 0 || result.already_unlocked ? "Video Ready!" : "Video Unlocked!",
+        description: result.fee && result.fee > 0 ? `₦${result.fee} deducted from your wallet` : "This video is free to access",
+      });
+
+      await fetchUnlockedVideos();
+      if (refreshProfile) refreshProfile();
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    } finally {
+      setIsUnlocking(false);
+    }
+  };
 
   // Timer for recording
   useEffect(() => {
@@ -309,46 +382,52 @@ const Recite = () => {
   return (
     <DashboardLayout>
       <div className="space-y-6">
+        {/* Header */}
+        <div>
+          <h1 className="text-2xl md:text-3xl font-bold text-foreground">Recite</h1>
+          <p className="text-sm text-muted-foreground mt-1">Practice your recitation and get instant feedback</p>
+        </div>
+
         {/* Header Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
           <Card className="p-4">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                <Target className="w-6 h-6 text-primary" />
+              <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                <Target className="w-5 h-5 md:w-6 md:h-6 text-primary" />
               </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Sessions</p>
-                <p className="text-2xl font-bold">{userRecitations.length}</p>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-muted-foreground">Sessions</p>
+                <p className="text-xl md:text-2xl font-bold text-foreground">{userRecitations.length}</p>
               </div>
             </div>
           </Card>
           <Card className="p-4">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full bg-success/10 flex items-center justify-center">
-                <Star className="w-6 h-6 text-success" />
+              <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-success/10 flex items-center justify-center flex-shrink-0">
+                <Star className="w-5 h-5 md:w-6 md:h-6 text-success" />
               </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Average Score</p>
-                <p className="text-2xl font-bold">{averageScore.toFixed(0)}%</p>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-muted-foreground">Average Score</p>
+                <p className="text-xl md:text-2xl font-bold text-foreground">{averageScore.toFixed(0)}%</p>
               </div>
             </div>
           </Card>
           <Card className="p-4">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full bg-warning/10 flex items-center justify-center">
-                <Trophy className="w-6 h-6 text-warning" />
+              <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-warning/10 flex items-center justify-center flex-shrink-0">
+                <Trophy className="w-5 h-5 md:w-6 md:h-6 text-warning" />
               </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Points Earned</p>
-                <p className="text-2xl font-bold">+{profile?.points || 0}</p>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-muted-foreground">Points Earned</p>
+                <p className="text-xl md:text-2xl font-bold text-foreground">+{profile?.points || 0}</p>
               </div>
             </div>
           </Card>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
           {/* Recitation Area */}
-          <Card className="h-full">
+          <Card className="h-full flex flex-col">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Mic className="w-5 h-5 text-primary" />
@@ -378,7 +457,13 @@ const Recite = () => {
                   )}
                   {videos.map((video) => (
                     <SelectItem key={video.id} value={video.id}>
-                      {video.title}
+                      <span className="flex items-center gap-2">
+                        {!isVideoUnlocked(video) && <Lock className="w-3 h-3 text-muted-foreground" />}
+                        {video.title}
+                        {video.unlock_fee && video.unlock_fee > 0 && !isVideoUnlocked(video) && (
+                          <span className="text-xs text-muted-foreground">(₦{video.unlock_fee})</span>
+                        )}
+                      </span>
                     </SelectItem>
                   ))}
                   {videos.length > 0 && (
@@ -390,7 +475,27 @@ const Recite = () => {
               </Select>
             </CardHeader>
             <CardContent className="space-y-6">
-              {/* Arabic Text Display with Scroll */}
+              {/* Unlock Gate */}
+              {selectedVideo && !isVideoUnlocked(selectedVideo) && (
+                <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg border border-border">
+                  <div className="flex items-center gap-2">
+                    <Lock className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-sm text-muted-foreground">
+                      <strong>{selectedVideo.title}</strong> — ₦{selectedVideo.unlock_fee}
+                    </span>
+                  </div>
+                  <Button size="sm" onClick={() => handleUnlockVideo(selectedVideo)} disabled={isUnlocking}>
+                    {isUnlocking ? (
+                      <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                    ) : (
+                      <Unlock className="w-3 h-3 mr-1" />
+                    )}
+                    Unlock
+                  </Button>
+                </div>
+              )}
+              {/* Arabic Text Display with Scroll - only when unlocked */}
+              {(!selectedVideo || isVideoUnlocked(selectedVideo)) && (
               <ScrollArea className="max-h-[350px] rounded-lg border border-border bg-muted/30">
                 <div className="p-6 md:p-8" dir="rtl">
                   {selectedVideo ? (
@@ -435,6 +540,11 @@ const Recite = () => {
                   )}
                 </div>
               </ScrollArea>
+              )}
+
+              {/* Only show recording controls when video is unlocked */}
+              {selectedVideo && isVideoUnlocked(selectedVideo) && (
+              <>
 
               {/* Transcribed Text */}
               {transcribedText && (
@@ -464,8 +574,15 @@ const Recite = () => {
                     className="w-12 h-12 rounded-full"
                     onClick={() => {
                       if (selectedVideo) {
-                        const audio = new Audio(selectedVideo.video_url);
-                        audio.play();
+                        if (selectedVideo.video_url.includes("youtube.com") || selectedVideo.video_url.includes("youtu.be")) {
+                          const videoId = selectedVideo.video_url.includes("v=")
+                            ? selectedVideo.video_url.split("v=")[1].split("&")[0]
+                            : selectedVideo.video_url.split("youtu.be/")[1].split("?")[0];
+                          window.open(`https://www.youtube.com/watch?v=${videoId}`, '_blank');
+                        } else {
+                          const audio = new Audio(selectedVideo.video_url);
+                          audio.play();
+                        }
                       }
                     }}
                     disabled={!selectedVideo}
@@ -557,7 +674,9 @@ const Recite = () => {
                     </div>
                   </div>
                 )}
-              </div>
+               </div>
+              </>
+              )}
             </CardContent>
           </Card>
 
