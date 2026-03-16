@@ -31,7 +31,6 @@ serve(async (req) => {
     // Build params to sign (sorted alphabetically)
     const paramsToSign: Record<string, string> = { timestamp };
     if (folder) paramsToSign.folder = folder;
-    if (resource_type) paramsToSign.resource_type = resource_type;
 
     // Create signature string
     const sortedKeys = Object.keys(paramsToSign).sort();
