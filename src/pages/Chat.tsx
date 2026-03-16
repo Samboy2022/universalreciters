@@ -325,15 +325,14 @@ const Chat = () => {
           .select("conversation_id")
           .eq("conversation_id", member.conversation_id)
           .eq("user_id", targetUser.id)
-          .single();
+          .maybeSingle();
 
         if (otherMember) {
-          // Conversation exists, select it
           const { data: conv } = await supabase
             .from("conversations")
             .select("*")
             .eq("id", member.conversation_id)
-            .single();
+            .maybeSingle();
 
           if (conv && !conv.is_group) {
             setSelectedConversation({
@@ -347,39 +346,67 @@ const Chat = () => {
       }
     }
 
-    // Create new conversation
-    const { data: conv, error: convError } = await supabase
+    // Create new conversation without returning the row immediately.
+    // RLS only allows selecting conversations after the user becomes a member.
+    const conversationId = crypto.randomUUID();
+    const fallbackTimestamp = new Date().toISOString();
+
+    const { error: convError } = await supabase
       .from("conversations")
       .insert({
+        id: conversationId,
         name: null,
         is_group: false,
         created_by: user.id,
-      })
-      .select()
-      .single();
+      });
 
-    if (convError || !conv) {
-      toast({ title: "Failed to create conversation", variant: "destructive" });
+    if (convError) {
+      toast({
+        title: "Failed to create conversation",
+        description: convError.message,
+        variant: "destructive",
+      });
       return;
     }
 
-    // Add members
     const { error: memberError } = await supabase.from("conversation_members").insert([
-      { conversation_id: conv.id, user_id: user.id },
-      { conversation_id: conv.id, user_id: targetUser.id },
+      { conversation_id: conversationId, user_id: user.id },
+      { conversation_id: conversationId, user_id: targetUser.id },
     ]);
 
     if (memberError) {
-      toast({ title: "Failed to add members", variant: "destructive" });
+      toast({
+        title: "Failed to add members",
+        description: memberError.message,
+        variant: "destructive",
+      });
       return;
     }
 
+    const { data: conv } = await supabase
+      .from("conversations")
+      .select("*")
+      .eq("id", conversationId)
+      .maybeSingle();
+
+    const nextConversation: Conversation = conv
+      ? {
+          ...conv,
+          otherUser: targetUser,
+        }
+      : {
+          id: conversationId,
+          name: null,
+          is_group: false,
+          avatar_url: null,
+          created_at: fallbackTimestamp,
+          updated_at: fallbackTimestamp,
+          otherUser: targetUser,
+        };
+
     setIsNewChatOpen(false);
     await fetchConversations();
-    setSelectedConversation({
-      ...conv,
-      otherUser: targetUser,
-    });
+    setSelectedConversation(nextConversation);
     setIsMobileViewingChat(true);
   };
 
