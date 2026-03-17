@@ -39,8 +39,9 @@ const mobileBottomNavItems = [
   { href: "/dashboard", icon: Home, label: "Home" },
   { href: "/dashboard/learn", icon: Play, label: "Learn" },
   { href: "/dashboard/recite", icon: Mic, label: "Recite" },
-  { href: "/dashboard/chat", icon: MessageSquare, label: "Chat" },
   { href: "/dashboard/wallet", icon: Wallet, label: "Wallet" },
+  { href: "/dashboard/chat", icon: MessageSquare, label: "Chat" },
+  { href: "/streaming", icon: Video, label: "Stream" },
 ];
 
 const DashboardLayout = ({ children }: DashboardLayoutProps) => {
