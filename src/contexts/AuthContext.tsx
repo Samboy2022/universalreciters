@@ -115,6 +115,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (session?.user) {
         fetchProfile(session.user.id);
         checkAdminRole(session.user.id);
+        checkCustomRole(session.user.id);
       }
       setIsLoading(false);
     });
