@@ -157,6 +157,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setSession(null);
     setProfile(null);
     setIsAdmin(false);
+    setHasCustomRole(false);
   };
 
   const refreshProfile = async () => {
