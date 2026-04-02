@@ -74,6 +74,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setIsAdmin(!!data && !error);
   };
 
+  const checkCustomRole = async (userId: string) => {
+    const { data } = await supabase
+      .from("user_custom_roles")
+      .select("id")
+      .eq("user_id", userId)
+      .limit(1);
+
+    setHasCustomRole(!!data && data.length > 0);
+  };
+
   useEffect(() => {
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
