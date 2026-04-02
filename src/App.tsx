@@ -33,6 +33,7 @@ import AdminLearning from "./pages/admin/AdminLearning";
 import AdminWallet from "./pages/admin/AdminWallet";
 import AdminCMS from "./pages/admin/AdminCMS";
 import AdminLogin from "./pages/admin/AdminLogin";
+import AdminCustomRoles from "./pages/admin/AdminCustomRoles";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
