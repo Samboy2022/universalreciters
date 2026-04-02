@@ -18,15 +18,15 @@ const AdminLogin = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [copiedField, setCopiedField] = useState<"email" | "password" | null>(null);
-  const { login, isAuthenticated, isAdmin, isLoading: authLoading } = useAuth();
+  const { login, isAuthenticated, isAdmin, hasCustomRole, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
   useEffect(() => {
-    if (!authLoading && isAuthenticated && isAdmin) {
+    if (!authLoading && isAuthenticated && (isAdmin || hasCustomRole)) {
       navigate("/admin", { replace: true });
     }
-  }, [isAuthenticated, isAdmin, authLoading, navigate]);
+  }, [isAuthenticated, isAdmin, hasCustomRole, authLoading, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

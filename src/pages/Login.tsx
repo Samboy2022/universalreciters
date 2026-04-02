@@ -151,14 +151,6 @@ const Login = () => {
                 Create Free Account
               </Button>
             </Link>
-            <div className="text-center">
-              <Link
-                to="/admin/login"
-                className="text-sm text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-1"
-              >
-                Admin Portal →
-              </Link>
-            </div>
           </div>
         </CardContent>
       </Card>

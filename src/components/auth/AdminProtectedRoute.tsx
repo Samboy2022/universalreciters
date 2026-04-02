@@ -7,7 +7,7 @@ interface AdminProtectedRouteProps {
 }
 
 const AdminProtectedRoute = ({ children }: AdminProtectedRouteProps) => {
-  const { isAuthenticated, isAdmin, isLoading } = useAuth();
+  const { isAuthenticated, isAdmin, hasCustomRole, isLoading } = useAuth();
   const location = useLocation();
 
   if (isLoading) {
@@ -25,7 +25,8 @@ const AdminProtectedRoute = ({ children }: AdminProtectedRouteProps) => {
     return <Navigate to="/admin/login" state={{ from: location }} replace />;
   }
 
-  if (!isAdmin) {
+  // Allow full admins OR users with custom admin roles
+  if (!isAdmin && !hasCustomRole) {
     return <Navigate to="/admin/login" replace />;
   }
 

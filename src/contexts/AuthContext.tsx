@@ -23,6 +23,7 @@ interface AuthContextType {
   profile: Profile | null;
   isAuthenticated: boolean;
   isAdmin: boolean;
+  hasCustomRole: boolean;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<{ error: Error | null }>;
   register: (data: RegisterData) => Promise<{ error: Error | null }>;
@@ -47,6 +48,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [hasCustomRole, setHasCustomRole] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchProfile = async (userId: string) => {
@@ -72,6 +74,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setIsAdmin(!!data && !error);
   };
 
+  const checkCustomRole = async (userId: string) => {
+    const { data } = await supabase
+      .from("user_custom_roles")
+      .select("id")
+      .eq("user_id", userId)
+      .limit(1);
+
+    setHasCustomRole(!!data && data.length > 0);
+  };
+
   useEffect(() => {
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -84,10 +96,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setTimeout(() => {
             fetchProfile(session.user.id);
             checkAdminRole(session.user.id);
+            checkCustomRole(session.user.id);
           }, 0);
         } else {
           setProfile(null);
           setIsAdmin(false);
+          setHasCustomRole(false);
         }
         setIsLoading(false);
       }
@@ -101,6 +115,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (session?.user) {
         fetchProfile(session.user.id);
         checkAdminRole(session.user.id);
+        checkCustomRole(session.user.id);
       }
       setIsLoading(false);
     });
@@ -142,6 +157,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setSession(null);
     setProfile(null);
     setIsAdmin(false);
+    setHasCustomRole(false);
   };
 
   const refreshProfile = async () => {
@@ -158,6 +174,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         profile,
         isAuthenticated: !!session,
         isAdmin,
+        hasCustomRole,
         isLoading,
         login,
         register,

@@ -1,6 +1,7 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
+import { useCustomRolePermissions } from "@/hooks/useCustomRolePermissions";
 import Logo from "@/components/ui/Logo";
 import {
   LayoutDashboard,
@@ -11,7 +12,6 @@ import {
   LogOut,
   Menu,
   Home,
-  ChevronLeft,
   BookOpen,
   BookText,
   Trophy,
@@ -27,23 +27,25 @@ interface AdminLayoutProps {
   children: React.ReactNode;
 }
 
-const navItems = [
-  { href: "/admin", icon: LayoutDashboard, label: "Overview" },
-  { href: "/admin/cms", icon: FileText, label: "CMS / Content" },
-  { href: "/admin/surahs", icon: BookOpen, label: "Recitation Videos" },
-  { href: "/admin/surah-texts", icon: BookText, label: "Surah Texts" },
-  { href: "/admin/rankings", icon: Trophy, label: "Ranking Control" },
-  { href: "/admin/learning", icon: GraduationCap, label: "Learning Materials" },
-  { href: "/admin/wallet", icon: Wallet, label: "Wallet Management" },
-  { href: "/admin/videos", icon: Video, label: "Stream Videos" },
-  { href: "/admin/users", icon: Users, label: "Users" },
-  { href: "/admin/pins", icon: Key, label: "Redemption PINs" },
-  { href: "/admin/payments", icon: CreditCard, label: "Payments" },
+const allNavItems = [
+  { href: "/admin", icon: LayoutDashboard, label: "Overview", slug: "dashboard" },
+  { href: "/admin/cms", icon: FileText, label: "CMS / Content", slug: "cms" },
+  { href: "/admin/surahs", icon: BookOpen, label: "Recitation Videos", slug: "surahs" },
+  { href: "/admin/surah-texts", icon: BookText, label: "Surah Texts", slug: "surah-texts" },
+  { href: "/admin/rankings", icon: Trophy, label: "Ranking Control", slug: "rankings" },
+  { href: "/admin/learning", icon: GraduationCap, label: "Learning Materials", slug: "learning" },
+  { href: "/admin/wallet", icon: Wallet, label: "Wallet Management", slug: "wallet" },
+  { href: "/admin/videos", icon: Video, label: "Stream Videos", slug: "videos" },
+  { href: "/admin/users", icon: Users, label: "Users", slug: "users" },
+  { href: "/admin/pins", icon: Key, label: "Redemption PINs", slug: "pins" },
+  { href: "/admin/payments", icon: CreditCard, label: "Payments", slug: "payments" },
+  { href: "/admin/roles", icon: Shield, label: "Custom Roles", slug: "roles" },
 ];
 
 const AdminLayout = ({ children }: AdminLayoutProps) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const { profile, logout } = useAuth();
+  const { profile, logout, isAdmin, user } = useAuth();
+  const { hasCustomRole, canAccessPage } = useCustomRolePermissions(user?.id);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -53,6 +55,13 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
   };
 
   const isActive = (path: string) => location.pathname === path;
+
+  // Full admins see everything; custom role users see only permitted pages
+  const navItems = isAdmin
+    ? allNavItems
+    : allNavItems.filter((item) => canAccessPage(item.slug));
+
+  const roleLabel = isAdmin ? "Administrator" : "Custom Role";
 
   return (
     <div className="min-h-screen bg-background flex flex-col lg:flex-row">
@@ -82,7 +91,7 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
                 <p className="font-medium text-sidebar-foreground truncate">
                   {profile?.name || "Admin"}
                 </p>
-                <p className="text-xs text-sidebar-foreground/70">Administrator</p>
+                <p className="text-xs text-sidebar-foreground/70">{roleLabel}</p>
               </div>
             </div>
           </div>
