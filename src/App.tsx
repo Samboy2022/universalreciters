@@ -161,6 +161,11 @@ const App = () => (
                 <AdminCMS />
               </AdminProtectedRoute>
             } />
+            <Route path="/admin/roles" element={
+              <AdminProtectedRoute>
+                <AdminCustomRoles />
+              </AdminProtectedRoute>
+            } />
             
             <Route path="*" element={<NotFound />} />
           </Routes>
