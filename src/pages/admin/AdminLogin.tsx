@@ -18,7 +18,7 @@ const AdminLogin = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [copiedField, setCopiedField] = useState<"email" | "password" | null>(null);
-  const { login, isAuthenticated, isAdmin, isLoading: authLoading } = useAuth();
+  const { login, isAuthenticated, isAdmin, hasCustomRole, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
