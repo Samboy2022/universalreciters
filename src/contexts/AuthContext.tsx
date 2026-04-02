@@ -23,6 +23,7 @@ interface AuthContextType {
   profile: Profile | null;
   isAuthenticated: boolean;
   isAdmin: boolean;
+  hasCustomRole: boolean;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<{ error: Error | null }>;
   register: (data: RegisterData) => Promise<{ error: Error | null }>;
