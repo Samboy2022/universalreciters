@@ -96,10 +96,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setTimeout(() => {
             fetchProfile(session.user.id);
             checkAdminRole(session.user.id);
+            checkCustomRole(session.user.id);
           }, 0);
         } else {
           setProfile(null);
           setIsAdmin(false);
+          setHasCustomRole(false);
         }
         setIsLoading(false);
       }
