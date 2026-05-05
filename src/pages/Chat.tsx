@@ -232,11 +232,11 @@ const Chat = () => {
           if (payload.new.sender_id === user?.id) return;
 
           // Fetch sender info
-          const { data: sender } = await supabase
-            .from("profiles")
-            .select("name, avatar_url")
-            .eq("id", payload.new.sender_id)
-            .single();
+          const { data: senderData } = await supabase
+            .rpc("get_public_profiles_by_ids", { _ids: [payload.new.sender_id] });
+          const sender = senderData?.[0]
+            ? { name: senderData[0].name, avatar_url: senderData[0].avatar_url }
+            : null;
 
           const newMsg = {
             ...payload.new,
