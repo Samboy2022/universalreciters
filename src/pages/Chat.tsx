@@ -127,11 +127,11 @@ const Chat = () => {
               .limit(1);
 
             if (members && members.length > 0) {
-              const { data: userData } = await supabase
-                .from("profiles")
-                .select("id, name, avatar_url")
-                .eq("id", members[0].user_id)
-                .single();
+              const { data: usersData } = await supabase
+                .rpc("get_public_profiles_by_ids", { _ids: [members[0].user_id] });
+              const userData = usersData?.[0]
+                ? { id: usersData[0].id, name: usersData[0].name, avatar_url: usersData[0].avatar_url }
+                : null;
 
               otherUser = userData;
             }
@@ -166,11 +166,11 @@ const Chat = () => {
       // Fetch sender info for each message
       const messagesWithSenders = await Promise.all(
         data.map(async (msg) => {
-          const { data: sender } = await supabase
-            .from("profiles")
-            .select("name, avatar_url")
-            .eq("id", msg.sender_id)
-            .single();
+          const { data: senderData } = await supabase
+            .rpc("get_public_profiles_by_ids", { _ids: [msg.sender_id] });
+          const sender = senderData?.[0]
+            ? { name: senderData[0].name, avatar_url: senderData[0].avatar_url }
+            : null;
 
           return { ...msg, sender };
         })
@@ -190,11 +190,9 @@ const Chat = () => {
 
   // Fetch all users for new chat
   const fetchUsers = async () => {
-    const { data } = await supabase
-      .from("profiles")
-      .select("id, name, avatar_url")
-      .neq("id", user?.id)
-      .order("name");
+    const { data } = await supabase.rpc("get_public_profiles_filtered", {
+      _ward: null, _lga: null, _state: null, _limit: 500, _exclude: user?.id ?? null,
+    });
 
     if (data) {
       setAllUsers(data);
@@ -234,11 +232,11 @@ const Chat = () => {
           if (payload.new.sender_id === user?.id) return;
 
           // Fetch sender info
-          const { data: sender } = await supabase
-            .from("profiles")
-            .select("name, avatar_url")
-            .eq("id", payload.new.sender_id)
-            .single();
+          const { data: senderData } = await supabase
+            .rpc("get_public_profiles_by_ids", { _ids: [payload.new.sender_id] });
+          const sender = senderData?.[0]
+            ? { name: senderData[0].name, avatar_url: senderData[0].avatar_url }
+            : null;
 
           const newMsg = {
             ...payload.new,
