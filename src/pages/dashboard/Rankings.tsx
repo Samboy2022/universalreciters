@@ -36,21 +36,13 @@ const Rankings = () => {
   const fetchRankings = async (scope: string) => {
     setLoading(true);
 
-    let query = supabase
-      .from("profiles")
-      .select("id, name, points, ward, lga, state")
-      .order("points", { ascending: false })
-      .limit(20);
-
-    if (scope === "ward" && profile?.ward) {
-      query = query.eq("ward", profile.ward);
-    } else if (scope === "lga" && profile?.lga) {
-      query = query.eq("lga", profile.lga);
-    } else if (scope === "state" && profile?.state) {
-      query = query.eq("state", profile.state);
-    }
-
-    const { data: profilesData } = await query;
+    const { data: profilesData } = await supabase.rpc("get_public_profiles_filtered", {
+      _ward: scope === "ward" ? profile?.ward ?? null : null,
+      _lga: scope === "lga" ? profile?.lga ?? null : null,
+      _state: scope === "state" ? profile?.state ?? null : null,
+      _limit: 20,
+      _exclude: null,
+    });
 
     if (profilesData) {
       // Fetch recitation counts for these users
