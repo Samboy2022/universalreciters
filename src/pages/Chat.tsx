@@ -166,11 +166,11 @@ const Chat = () => {
       // Fetch sender info for each message
       const messagesWithSenders = await Promise.all(
         data.map(async (msg) => {
-          const { data: sender } = await supabase
-            .from("profiles")
-            .select("name, avatar_url")
-            .eq("id", msg.sender_id)
-            .single();
+          const { data: senderData } = await supabase
+            .rpc("get_public_profiles_by_ids", { _ids: [msg.sender_id] });
+          const sender = senderData?.[0]
+            ? { name: senderData[0].name, avatar_url: senderData[0].avatar_url }
+            : null;
 
           return { ...msg, sender };
         })
