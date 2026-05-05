@@ -190,11 +190,9 @@ const Chat = () => {
 
   // Fetch all users for new chat
   const fetchUsers = async () => {
-    const { data } = await supabase
-      .from("profiles")
-      .select("id, name, avatar_url")
-      .neq("id", user?.id)
-      .order("name");
+    const { data } = await supabase.rpc("get_public_profiles_filtered", {
+      _ward: null, _lga: null, _state: null, _limit: 500, _exclude: user?.id ?? null,
+    });
 
     if (data) {
       setAllUsers(data);
