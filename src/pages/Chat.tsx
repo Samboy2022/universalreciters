@@ -127,11 +127,11 @@ const Chat = () => {
               .limit(1);
 
             if (members && members.length > 0) {
-              const { data: userData } = await supabase
-                .from("profiles")
-                .select("id, name, avatar_url")
-                .eq("id", members[0].user_id)
-                .single();
+              const { data: usersData } = await supabase
+                .rpc("get_public_profiles_by_ids", { _ids: [members[0].user_id] });
+              const userData = usersData?.[0]
+                ? { id: usersData[0].id, name: usersData[0].name, avatar_url: usersData[0].avatar_url }
+                : null;
 
               otherUser = userData;
             }
