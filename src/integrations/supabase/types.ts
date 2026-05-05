@@ -906,6 +906,19 @@ export type Database = {
           ward: string
         }[]
       }
+      get_public_profiles_by_ids: {
+        Args: { _ids: string[] }
+        Returns: {
+          avatar_url: string
+          country: string
+          id: string
+          lga: string
+          name: string
+          points: number
+          state: string
+          ward: string
+        }[]
+      }
       has_custom_admin_role: { Args: { _user_id: string }; Returns: boolean }
       has_role: {
         Args: {
